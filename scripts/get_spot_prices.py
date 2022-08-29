@@ -36,7 +36,7 @@ def url_of_price_area(price_area: str, from_date: date, to_date: date) -> str:
 
 def structure_datetime(date_string: str, cls: Type):
     dt = datetime.fromisoformat(date_string)
-    return dt.replace(tzinfo=zoneinfo.ZoneInfo("ETC/GMT-1"))
+    return dt.replace(tzinfo=zoneinfo.ZoneInfo("Etc/GMT-1"))
 
 
 from_api_converter = GenConverter()
@@ -245,7 +245,7 @@ if __name__ == "__main__":
             merged_prices = merge_prices(saved_prices, grouped_prices_by_year[year])
             save_year_to_file(year, merged_prices, area)
 
-        today = datetime.now(tz=zoneinfo.ZoneInfo("ETC/GMT-1")).date()
+        today = datetime.now(tz=zoneinfo.ZoneInfo("Etc/GMT-1")).date()
         tomorrow = today + timedelta(days=1)
         latest_prices = list()
         latest_prices.extend(grouped_prices_by_day[today.strftime("%Y-%m-%d")])
