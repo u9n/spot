@@ -21,6 +21,11 @@ jobs:
       run: pip install -r requirements.txt
     - name: Run a one-line script
       run: python scripts/get_spot_prices.py
+    - name: setup git config
+      run: |
+         # setup the username and email. 
+         git config user.name "GitHub Actions Bot"
+         git config user.email "<>"
     - name: check for changes
       run: git status
     - name: stage changed files
@@ -30,4 +35,4 @@ jobs:
     - name: fetch from master
       run: git fetch origin master
     - name: push code to master
-      run: git push origin HEAD:master
+      run: git push origin master
