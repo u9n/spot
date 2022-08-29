@@ -193,7 +193,7 @@ def merge_prices(
 
 
 def get_latest_price_area_data(price_area: str, days_back: int, days_ahead: int) -> list[HourlyPrice]:
-    today = datetime.now(tz=zoneinfo.ZoneInfo("ETC/GMT-1")).date()
+    today = datetime.now(tz=zoneinfo.ZoneInfo("Etc/GMT-1")).date()
     from_date = today - timedelta(days=days_back)
     to_date = today + timedelta(days=days_ahead)
     url = url_of_price_area(price_area, from_date, to_date)
