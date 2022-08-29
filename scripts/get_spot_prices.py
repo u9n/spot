@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 from typing import Type
-
+import os
 import cattr
 import attr
-from datetime import datetime
+from datetime import datetime, timedelta, date
 import httpx
 import zoneinfo
 from cattrs import GenConverter
@@ -20,19 +20,19 @@ class HourlyPrice:
 
 PRICE_AREAS = {"SE1", "SE2", "SE3", "SE4"}
 
+BASE_DIRECTORY = "docs/electricity"
+
 SPOT_BASE_URL = ""
 
-URL = "https://www.vattenfall.se/api/price/spot/pricearea/2022-08-27/2022-09-02/SN4"
 
-
-def url_of_price_area(price_area: str) -> str:
+def url_of_price_area(price_area: str, from_date: date, to_date: date) -> str:
     area_map = {
         "SE1": "SN1",
         "SE2": "SN2",
         "SE3": "SN3",
         "SE4": "SN4",
     }
-    return f"https://www.vattenfall.se/api/price/spot/pricearea/2022-08-27/2022-09-02/{area_map[price_area]}"
+    return f"https://www.vattenfall.se/api/price/spot/pricearea/{from_date.strftime('%Y-%m-%d')}/{to_date.strftime('%Y-%m-%d')}/{area_map[price_area]}"
 
 
 def structure_datetime(date_string: str, cls: Type):
@@ -62,11 +62,16 @@ file_converter.register_unstructure_hook(datetime, lambda dt: dt.isoformat())
 def save_day_to_file(
     day_string: str, hourly_prices: list[HourlyPrice], price_area: str
 ):
+    year, month, day = day_string.split("-")
     output = list()
     for price in hourly_prices:
         output.append(file_converter.unstructure(price))
-
-    with open(f"./site/data/{price_area}/{day_string}.json", "w") as file:
+    try:
+        os.makedirs(f"{BASE_DIRECTORY}/{price_area}/{year}/{month}/{day}")
+    except OSError:
+        # folders exists
+        pass
+    with open(f"{BASE_DIRECTORY}/{price_area}/{year}/{month}/{day}/index.json", "w") as file:
         json.dump(output, file)
 
 
@@ -84,8 +89,9 @@ def group_hourly_values_by(
 
 
 def get_saved_prices_for_day(day_string: str, price_area: str) -> list[HourlyPrice]:
+    year, month, day = day_string.split("-")
     try:
-        with open(f"./data/{price_area}/{day_string}.json", "r") as file:
+        with open(f"{BASE_DIRECTORY}/{price_area}/{year}/{month}/{day}/index.json", "r") as file:
             out = list()
             data = json.load(file)
             for item in data:
@@ -106,8 +112,12 @@ def merge_prices(
     return list(out)
 
 
-def get_latest_price_area_data(price_area: str) -> list[HourlyPrice]:
-    response = httpx.get(url_of_price_area(price_area))
+def get_latest_price_area_data(price_area: str, days_back: int, days_ahead: int) -> list[HourlyPrice]:
+    today = datetime.now(tz=zoneinfo.ZoneInfo("ETC/GMT-1")).date()
+    from_date = today - timedelta(days=days_back)
+    to_date = today + timedelta(days=days_ahead)
+    url = url_of_price_area(price_area, from_date, to_date)
+    response = httpx.get(url, timeout=20)
     data = response.json()
 
     hourly_prices = list()
@@ -117,12 +127,38 @@ def get_latest_price_area_data(price_area: str) -> list[HourlyPrice]:
     return hourly_prices
 
 
+def save_latest_prices(latest_prices: list[HourlyPrice], price_area: str):
+    output = list()
+    for price in latest_prices:
+        output.append(file_converter.unstructure(price))
+    try:
+        os.makedirs(f"{BASE_DIRECTORY}/{price_area}/latest")
+    except OSError:
+        # folders exists
+        pass
+    with open(f"{BASE_DIRECTORY}/{price_area}/latest/index.json",
+              "w") as file:
+        json.dump(output, file)
+
+
 if __name__ == "__main__":
     for area in PRICE_AREAS:
-        hourly_prices = get_latest_price_area_data(area)
+        hourly_prices = get_latest_price_area_data(area, 4, 1)
         grouped_prices = group_hourly_values_by(hourly_prices)
 
         for day in grouped_prices.keys():
             saved_prices = get_saved_prices_for_day(day, area)
             merged_prices = merge_prices(saved_prices, grouped_prices[day])
             save_day_to_file(day, merged_prices, area)
+
+        today = datetime.now(tz=zoneinfo.ZoneInfo("ETC/GMT-1")).date()
+        tomorrow = today + timedelta(days=1)
+        latest_prices = list()
+        latest_prices.extend(grouped_prices[today.strftime("%Y-%m-%d")])
+        try:
+            latest_prices.extend(grouped_prices[tomorrow.strftime("%Y-%m-%d")])
+        except KeyError:
+            # Before they are pubished we wont get the data
+            pass
+        save_latest_prices(latest_prices, area)
+
