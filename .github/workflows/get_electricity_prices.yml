@@ -11,6 +11,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: Install deps
+      run: pip install -r requirements.txt
     - name: Run a one-line script
       run: python scripts/get_spot_prices.py
     - name: switching from HTTPS to SSH

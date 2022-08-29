@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from typing import Type
 import os
-import cattr
 import attr
 from datetime import datetime, timedelta, date
 import httpx
