@@ -33,6 +33,6 @@ jobs:
     - name: commit changed files
       run: git commit -m "Added new prices"
     - name: fetch from master
-      run: git fetch origin master
+      run: git fetch origin main
     - name: push code to master
-      run: git push origin master
+      run: git push origin main
