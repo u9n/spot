@@ -4,3 +4,4 @@ cattrs
 click
 python-dateutil
 structlog
+xmltodict
