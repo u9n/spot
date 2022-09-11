@@ -7,9 +7,6 @@ on:
 
 jobs:
   get_spot_prices:
-    strategy:
-      matrix:
-        price_area: [ "SE1", "SE2", "SE3", "SE4" ]
     runs-on: ubuntu-latest
 
     steps:
@@ -22,8 +19,14 @@ jobs:
         python-version: "3.9"
     - name: Install deps
       run: pip install -r requirements.txt
-    - name: Run a one-line script
-      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=${{ matrix.price_area }} --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update SE1
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=SE1 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update SE2
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=SE2 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update SE3
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=SE3 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update SE4
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=SE4 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
 
     - name: setup git config
       run: |
