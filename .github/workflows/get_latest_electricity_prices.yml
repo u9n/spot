@@ -23,7 +23,7 @@ jobs:
     - name: Install deps
       run: pip install -r requirements.txt
     - name: Run a one-line script
-      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=${{ matrix.price_area }}
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=${{ matrix.price_area }} --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
 
     - name: setup git config
       run: |
