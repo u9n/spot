@@ -36,7 +36,7 @@ jobs:
       run: git add .
     - name: commit changed files
       run: git commit -m "Added new prices"
-    - name: fetch from master
-      run: git fetch origin main
+    - name: pull from master
+      run: git pull origin main
     - name: push code to master
       run: git push origin main
