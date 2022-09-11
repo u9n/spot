@@ -1,27 +1,14 @@
 from __future__ import annotations
 
 import json
-from typing import Type
 import os
-import attr
 from datetime import datetime, timedelta, date
 import httpx
 import zoneinfo
-from cattrs import GenConverter
-from cattrs.gen import make_dict_structure_fn, override
 
-
-@attr.s(auto_attribs=True, frozen=True)
-class HourlyPrice:
-    timestamp: datetime
-    value: str
-
-
-PRICE_AREAS = {"SE1", "SE2", "SE3", "SE4"}
-
-BASE_DIRECTORY = "docs/electricity"
-
-SPOT_BASE_URL = ""
+from base import (HourlyPrice, file_converter, from_api_converter,
+                   get_saved_prices_for_day, get_saved_prices_for_month,
+                   get_saved_prices_for_year, BASE_DIRECTORY, )
 
 
 def url_of_price_area(price_area: str, from_date: date, to_date: date) -> str:
@@ -32,30 +19,6 @@ def url_of_price_area(price_area: str, from_date: date, to_date: date) -> str:
         "SE4": "SN4",
     }
     return f"https://www.vattenfall.se/api/price/spot/pricearea/{from_date.strftime('%Y-%m-%d')}/{to_date.strftime('%Y-%m-%d')}/{area_map[price_area]}"
-
-
-def structure_datetime(date_string: str, cls: Type):
-    dt = datetime.fromisoformat(date_string)
-    return dt.replace(tzinfo=zoneinfo.ZoneInfo("Etc/GMT-1"))
-
-
-from_api_converter = GenConverter()
-from_api_converter.register_structure_hook(datetime, structure_datetime)
-from_api_converter.register_structure_hook(
-    HourlyPrice,
-    make_dict_structure_fn(
-        HourlyPrice,
-        from_api_converter,
-        timestamp=override(rename="TimeStamp"),
-        value=override(rename="Value"),
-    ),
-)
-
-file_converter = GenConverter()
-file_converter.register_structure_hook(
-    datetime, lambda ts, _: datetime.fromisoformat(ts)
-)
-file_converter.register_unstructure_hook(datetime, lambda dt: dt.isoformat())
 
 
 def save_day_to_file(
@@ -70,8 +33,11 @@ def save_day_to_file(
     except OSError:
         # folders exists
         pass
-    with open(f"{BASE_DIRECTORY}/{price_area}/{year}/{month}/{day}/index.json", "w") as file:
+    with open(
+        f"{BASE_DIRECTORY}/{price_area}/{year}/{month}/{day}/index.json", "w"
+    ) as file:
         json.dump(output, file)
+
 
 def save_month_to_file(
     month_string: str, hourly_prices: list[HourlyPrice], price_area: str
@@ -88,6 +54,7 @@ def save_month_to_file(
     with open(f"{BASE_DIRECTORY}/{price_area}/{year}/{month}/index.json", "w") as file:
         json.dump(output, file)
 
+
 def save_year_to_file(
     year_string: str, hourly_prices: list[HourlyPrice], price_area: str
 ):
@@ -102,6 +69,7 @@ def save_year_to_file(
     with open(f"{BASE_DIRECTORY}/{price_area}/{year_string}/index.json", "w") as file:
         json.dump(output, file)
 
+
 def group_hourly_values_by_day(
     hourly_prices: list[HourlyPrice],
 ) -> dict[str, list[HourlyPrice]]:
@@ -114,6 +82,7 @@ def group_hourly_values_by_day(
             out[price.timestamp.strftime("%Y-%m-%d")].append(price)
     return out
 
+
 def group_hourly_values_by_month(
     hourly_prices: list[HourlyPrice],
 ) -> dict[str, list[HourlyPrice]]:
@@ -125,6 +94,7 @@ def group_hourly_values_by_month(
             out[price.timestamp.strftime("%Y-%m")] = list()
             out[price.timestamp.strftime("%Y-%m")].append(price)
     return out
+
 
 def group_hourly_values_by_year(
     hourly_prices: list[HourlyPrice],
@@ -139,50 +109,6 @@ def group_hourly_values_by_year(
     return out
 
 
-def get_saved_prices_for_day(date_string: str, price_area: str) -> list[HourlyPrice]:
-    year, month, day = date_string.split("-")
-    try:
-        with open(f"{BASE_DIRECTORY}/{price_area}/{year}/{month}/{day}/index.json", "r") as file:
-            out = list()
-            data = json.load(file)
-            for item in data:
-                out.append(file_converter.structure(item, HourlyPrice))
-
-            return out
-
-    except FileNotFoundError:
-        return list()
-
-
-def get_saved_prices_for_month(month_string: str, price_area: str) -> list[HourlyPrice]:
-    year, month = month_string.split("-")
-    try:
-        with open(f"{BASE_DIRECTORY}/{price_area}/{year}/{month}/index.json", "r") as file:
-            out = list()
-            data = json.load(file)
-            for item in data:
-                out.append(file_converter.structure(item, HourlyPrice))
-
-            return out
-
-    except FileNotFoundError:
-        return list()
-
-def get_saved_prices_for_year(year_string: str, price_area: str) -> list[HourlyPrice]:
-    try:
-        with open(f"{BASE_DIRECTORY}/{price_area}/{year_string}/index.json", "r") as file:
-            out = list()
-            data = json.load(file)
-            for item in data:
-                out.append(file_converter.structure(item, HourlyPrice))
-
-            return out
-
-    except FileNotFoundError:
-        return list()
-
-
-
 def merge_prices(
     saved_prices: list[HourlyPrice], prices_from_api: list[HourlyPrice]
 ) -> list[HourlyPrice]:
@@ -192,7 +118,9 @@ def merge_prices(
     return list(out)
 
 
-def get_latest_price_area_data(price_area: str, days_back: int, days_ahead: int) -> list[HourlyPrice]:
+def get_latest_price_area_data(
+    price_area: str, days_back: int, days_ahead: int
+) -> list[HourlyPrice]:
     today = datetime.now(tz=zoneinfo.ZoneInfo("Etc/GMT-1")).date()
     from_date = today - timedelta(days=days_back)
     to_date = today + timedelta(days=days_ahead)
@@ -217,8 +145,7 @@ def save_latest_prices(latest_prices: list[HourlyPrice], price_area: str):
     except OSError:
         # folders exists
         pass
-    with open(f"{BASE_DIRECTORY}/{price_area}/latest/index.json",
-              "w") as file:
+    with open(f"{BASE_DIRECTORY}/{price_area}/latest/index.json", "w") as file:
         json.dump(output, file)
 
 
@@ -228,7 +155,6 @@ if __name__ == "__main__":
         grouped_prices_by_day = group_hourly_values_by_day(hourly_prices)
         grouped_prices_by_month = group_hourly_values_by_month(hourly_prices)
         grouped_prices_by_year = group_hourly_values_by_year(hourly_prices)
-
 
         for day in grouped_prices_by_day.keys():
             saved_prices = get_saved_prices_for_day(day, area)
@@ -255,4 +181,3 @@ if __name__ == "__main__":
             # Before they are pubished we wont get the data
             pass
         save_latest_prices(latest_prices, area)
-

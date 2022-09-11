@@ -1,3 +1,6 @@
 httpx
 attrs
 cattrs
+click
+python-dateutil
+structlog
