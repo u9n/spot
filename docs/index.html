@@ -25,7 +25,7 @@
         </h1>
         <p class="mx-auto mt-6 max-w-2xl text-lg tracking-tight text-slate-700">Access
             day
-            ahead prices of electricity for you area. Simple, fast and free.</p>
+            ahead prices of electricity for your area. Simple, fast and free.</p>
         <div class="my-10 flex justify-center gap-x-6">
             <a
                     class="group inline-flex items-center justify-center rounded-full py-2 px-4 text-sm font-semibold focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 bg-slate-900 text-white hover:bg-slate-700 hover:text-slate-100 active:bg-slate-800 active:text-slate-300 focus-visible:outline-slate-900"
@@ -57,7 +57,7 @@
             prices_year_2022 = httpx.get(url="spot.utilitarian.io/electricity/SE2/2022")
 
             # prices for May 2022 for SE3
-            may_prices = httpx.get(url="spot.utilitarian.io/electricity/SE4/2022/05")
+            may_prices = httpx.get(url="spot.utilitarian.io/electricity/SE3/2022/05")
 
             # prices for May 3d 2022 for SE4
             may_third_prices = httpx.get(url="spot.utilitarian.io/electricity/SE4/2022/05/03")
