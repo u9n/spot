@@ -60,7 +60,7 @@ class TimeSeries:
     def data(self):
         out = []
         for point in self.period.data_points:
-            timestamp = self.period.interval.start + timedelta(hours=point.position)
+            timestamp = self.period.interval.start + timedelta(hours=point.position - 1)
             price = HourlyPrice(timestamp, str(point.price))
             out.append(price)
 
