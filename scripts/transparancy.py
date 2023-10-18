@@ -185,7 +185,7 @@ def get_prices(start: datetime, end: datetime, price_area: str, security_token: 
         "out_Domain": area_code,
     }
 
-    response = httpx.get(base_url, params=params, timeout=20)
+    response = httpx.get(base_url, params=params, timeout=120)
     LOG.info(
         "Received response",
         status_code=response.status_code,
