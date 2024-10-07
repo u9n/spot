@@ -1,4 +1,5 @@
 import json
+import pprint
 import time
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
@@ -9,7 +10,7 @@ import xmltodict
 from typing import *
 from dateutil.parser import parse as dt_parse
 import click
-from cattrs import GenConverter
+from cattrs import GenConverter, transform_error
 from cattrs.gen import make_dict_structure_fn, override
 
 from base import (
@@ -54,15 +55,16 @@ class Period:
 class TimeSeries:
     currency: str
     energy_unit: str
-    period: Period
+    periods: list[Period]
 
     @property
     def data(self):
         out = []
-        for point in self.period.data_points:
-            timestamp = self.period.interval.start + timedelta(hours=point.position - 1)
-            price = HourlyPrice(timestamp, str(point.price))
-            out.append(price)
+        for period in self.periods:
+            for point in period.data_points:
+                timestamp = period.interval.start + timedelta(hours=point.position - 1)
+                price = HourlyPrice(timestamp, str(point.price))
+                out.append(price)
 
         return out
 
@@ -100,7 +102,7 @@ from_api_converter.register_structure_hook(
         from_api_converter,
         currency=override(rename="currency_Unit.name"),
         energy_unit=override(rename="price_Measure_Unit.name"),
-        period=override(rename="Period"),
+        periods=override(rename="Period"),
     ),
 )
 
@@ -160,8 +162,8 @@ def update_latest(prices: list[HourlyPrice], price_area: str):
     tomorrow = today + timedelta(days=1)
     latest_prices = list()
     grouped = group_hourly_values_by_day(prices)
-    latest_prices.extend(grouped[today.strftime("%Y-%m-%d")])
     try:
+        latest_prices.extend(grouped[today.strftime("%Y-%m-%d")])
         latest_prices.extend(grouped[tomorrow.strftime("%Y-%m-%d")])
     except KeyError:
         # Before they are pubished we wont get the data
@@ -191,19 +193,25 @@ def get_prices(start: datetime, end: datetime, price_area: str, security_token: 
         status_code=response.status_code,
         length=len(response.content),
     )
+    print(response.text)
 
     timeseries = None
     try:
         timeseries = xmltodict.parse(response.text)["Publication_MarketDocument"][
             "TimeSeries"
         ]
+        pprint.pprint(timeseries)
     except KeyError:
         LOG.error("Problem with content of response", content=response.content)
         return
 
     hourly_prices = []
-    for series in timeseries:
-        hourly_prices.extend(from_api_converter.structure(series, TimeSeries).data)
+
+    try:
+        ts = from_api_converter.structure(timeseries, TimeSeries)
+        hourly_prices.extend(ts.data)
+    except Exception as exc:
+        print(transform_error(exc))
 
     return hourly_prices
 
@@ -268,9 +276,8 @@ def backfill(start: str, end: str, price_area: str, security_token: str):
     "--security-token", envvar="TRANSPARENCY_PLATFORM_SECURITY_TOKEN", type=str
 )
 def get_day_ahead_prices(
-    days_ahead: int, days_behind: int, price_area: str, security_token: str
+        days_ahead: int, days_behind: int, price_area: str, security_token: str
 ):
-
     now = datetime.now(tz=timezone.utc)
     start = now - timedelta(days=days_behind)
     end = now + timedelta(days=days_ahead)
