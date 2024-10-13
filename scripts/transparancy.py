@@ -55,16 +55,15 @@ class Period:
 class TimeSeries:
     currency: str
     energy_unit: str
-    periods: list[Period]
+    period: Period
 
     @property
     def data(self):
         out = []
-        for period in self.periods:
-            for point in period.data_points:
-                timestamp = period.interval.start + timedelta(hours=point.position - 1)
-                price = HourlyPrice(timestamp, str(point.price))
-                out.append(price)
+        for point in self.period.data_points:
+            timestamp = self.period.interval.start + timedelta(hours=point.position - 1)
+            price = HourlyPrice(timestamp, str(point.price))
+            out.append(price)
 
         return out
 
@@ -102,7 +101,7 @@ from_api_converter.register_structure_hook(
         from_api_converter,
         currency=override(rename="currency_Unit.name"),
         energy_unit=override(rename="price_Measure_Unit.name"),
-        periods=override(rename="Period"),
+        period=override(rename="Period"),
     ),
 )
 
@@ -208,8 +207,9 @@ def get_prices(start: datetime, end: datetime, price_area: str, security_token: 
     hourly_prices = []
 
     try:
-        ts = from_api_converter.structure(timeseries, TimeSeries)
-        hourly_prices.extend(ts.data)
+        for series in timeseries:
+            ts = from_api_converter.structure(series, TimeSeries)
+            hourly_prices.extend(ts.data)
     except Exception as exc:
         print(transform_error(exc))
 
