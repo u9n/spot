@@ -6,9 +6,9 @@ from datetime import datetime, timedelta, date
 import httpx
 import zoneinfo
 
-from base import (HourlyPrice, file_converter, from_api_converter,
-                   get_saved_prices_for_day, get_saved_prices_for_month,
-                   get_saved_prices_for_year, BASE_DIRECTORY, )
+from base import (Price, file_converter, from_api_converter,
+                  get_saved_prices_for_day, get_saved_prices_for_month,
+                  get_saved_prices_for_year, BASE_DIRECTORY, )
 
 
 def url_of_price_area(price_area: str, from_date: date, to_date: date) -> str:
@@ -22,11 +22,12 @@ def url_of_price_area(price_area: str, from_date: date, to_date: date) -> str:
 
 
 def save_day_to_file(
-    day_string: str, hourly_prices: list[HourlyPrice], price_area: str
+    day_string: str, prices: list[Price], price_area: str
 ):
     year, month, day = day_string.split("-")
     output = list()
-    for price in hourly_prices:
+    sorted_prices = sorted(prices, key=lambda p: p.timestamp)
+    for price in sorted_prices:
         output.append(file_converter.unstructure(price))
     try:
         os.makedirs(f"{BASE_DIRECTORY}/{price_area}/{year}/{month}/{day}")
@@ -40,11 +41,12 @@ def save_day_to_file(
 
 
 def save_month_to_file(
-    month_string: str, hourly_prices: list[HourlyPrice], price_area: str
+    month_string: str, prices: list[Price], price_area: str
 ):
     year, month = month_string.split("-")
     output = list()
-    for price in hourly_prices:
+    sorted_prices = sorted(prices, key=lambda p: p.timestamp)
+    for price in sorted_prices:
         output.append(file_converter.unstructure(price))
     try:
         os.makedirs(f"{BASE_DIRECTORY}/{price_area}/{year}/{month}")
@@ -56,10 +58,11 @@ def save_month_to_file(
 
 
 def save_year_to_file(
-    year_string: str, hourly_prices: list[HourlyPrice], price_area: str
+    year_string: str, prices: list[Price], price_area: str
 ):
     output = list()
-    for price in hourly_prices:
+    sorted_prices = sorted(prices, key=lambda p: p.timestamp)
+    for price in sorted_prices:
         output.append(file_converter.unstructure(price))
     try:
         os.makedirs(f"{BASE_DIRECTORY}/{price_area}/{year_string}")
@@ -70,11 +73,11 @@ def save_year_to_file(
         json.dump(output, file)
 
 
-def group_hourly_values_by_day(
-    hourly_prices: list[HourlyPrice],
-) -> dict[str, list[HourlyPrice]]:
+def group_values_by_day(
+    prices: list[Price],
+) -> dict[str, list[Price]]:
     out = dict()
-    for price in hourly_prices:
+    for price in prices:
         try:
             out[price.timestamp.strftime("%Y-%m-%d")].append(price)
         except KeyError:
@@ -83,11 +86,11 @@ def group_hourly_values_by_day(
     return out
 
 
-def group_hourly_values_by_month(
-    hourly_prices: list[HourlyPrice],
-) -> dict[str, list[HourlyPrice]]:
+def group_values_by_month(
+    prices: list[Price],
+) -> dict[str, list[Price]]:
     out = dict()
-    for price in hourly_prices:
+    for price in prices:
         try:
             out[price.timestamp.strftime("%Y-%m")].append(price)
         except KeyError:
@@ -96,11 +99,11 @@ def group_hourly_values_by_month(
     return out
 
 
-def group_hourly_values_by_year(
-    hourly_prices: list[HourlyPrice],
-) -> dict[str, list[HourlyPrice]]:
+def group_values_by_year(
+    prices: list[Price],
+) -> dict[str, list[Price]]:
     out = dict()
-    for price in hourly_prices:
+    for price in prices:
         try:
             out[price.timestamp.strftime("%Y")].append(price)
         except KeyError:
@@ -110,8 +113,8 @@ def group_hourly_values_by_year(
 
 
 def merge_prices(
-    saved_prices: list[HourlyPrice], prices_from_api: list[HourlyPrice]
-) -> list[HourlyPrice]:
+    saved_prices: list[Price], prices_from_api: list[Price]
+) -> list[Price]:
     out = set(saved_prices)
     for price in prices_from_api:
         out.add(price)
@@ -120,7 +123,7 @@ def merge_prices(
 
 def get_latest_price_area_data(
     price_area: str, days_back: int, days_ahead: int
-) -> list[HourlyPrice]:
+) -> list[Price]:
     today = datetime.now(tz=zoneinfo.ZoneInfo("Etc/GMT-1")).date()
     from_date = today - timedelta(days=days_back)
     to_date = today + timedelta(days=days_ahead)
@@ -129,16 +132,17 @@ def get_latest_price_area_data(
     response = httpx.get(url, timeout=20)
     data = response.json()
 
-    hourly_prices = list()
+    prices = list()
     for item in data:
-        hourly_prices.append(from_api_converter.structure(item, HourlyPrice))
+        prices.append(from_api_converter.structure(item, Price))
 
-    return hourly_prices
+    return prices
 
 
-def save_latest_prices(latest_prices: list[HourlyPrice], price_area: str):
+def save_latest_prices(latest_prices: list[Price], price_area: str):
     output = list()
-    for price in latest_prices:
+    sorted_prices = sorted(latest_prices, key=lambda x: x.timestamp)
+    for price in sorted_prices:
         output.append(file_converter.unstructure(price))
     try:
         os.makedirs(f"{BASE_DIRECTORY}/{price_area}/latest")
@@ -151,10 +155,10 @@ def save_latest_prices(latest_prices: list[HourlyPrice], price_area: str):
 
 if __name__ == "__main__":
     for area in PRICE_AREAS:
-        hourly_prices = get_latest_price_area_data(area, 4, 1)
-        grouped_prices_by_day = group_hourly_values_by_day(hourly_prices)
-        grouped_prices_by_month = group_hourly_values_by_month(hourly_prices)
-        grouped_prices_by_year = group_hourly_values_by_year(hourly_prices)
+        prices = get_latest_price_area_data(area, 4, 1)
+        grouped_prices_by_day = group_values_by_day(prices)
+        grouped_prices_by_month = group_values_by_month(prices)
+        grouped_prices_by_year = group_values_by_year(prices)
 
         for day in grouped_prices_by_day.keys():
             saved_prices = get_saved_prices_for_day(day, area)

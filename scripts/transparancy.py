@@ -12,19 +12,22 @@ from dateutil.parser import parse as dt_parse
 import click
 from cattrs import GenConverter, transform_error
 from cattrs.gen import make_dict_structure_fn, override
+import structlog
+
+LOG = structlog.get_logger()
 
 from base import (
-    HourlyPrice,
+    Price,
     get_saved_prices_for_year,
     get_saved_prices_for_month,
     get_saved_prices_for_day,
 )
 from get_spot_prices import (
-    group_hourly_values_by_year,
+    group_values_by_year,
     save_year_to_file,
-    group_hourly_values_by_month,
+    group_values_by_month,
     save_month_to_file,
-    group_hourly_values_by_day,
+    group_values_by_day,
     save_day_to_file,
     save_latest_prices,
 )
@@ -61,8 +64,14 @@ class TimeSeries:
     def data(self):
         out = []
         for point in self.period.data_points:
-            timestamp = self.period.interval.start + timedelta(hours=point.position - 1)
-            price = HourlyPrice(timestamp, str(point.price))
+            if self.period.resolution == "PT60M":  # hourly
+                timestamp = self.period.interval.start + timedelta(hours=point.position - 1)
+            elif self.period.resolution == "PT15M":
+                timestamp = self.period.interval.start + timedelta(minutes=(15 * (point.position-1)))
+            else:
+                raise ValueError(f"Invalid period resolution, {self.period.resolution}")
+
+            price = Price(timestamp, str(point.price))
             out.append(price)
 
         return out
@@ -113,8 +122,8 @@ price_area_map: dict[str, str] = {
 }
 
 
-def update_yearly(prices: list[HourlyPrice], price_area: str):
-    grouped = group_hourly_values_by_year(prices)
+def update_yearly(prices: list[Price], price_area: str):
+    grouped = group_values_by_year(prices)
     for year in grouped.keys():
         LOG.info("Updating yearly values", year=year, area=price_area)
         saved_prices = get_saved_prices_for_year(year, price_area)
@@ -127,8 +136,8 @@ def update_yearly(prices: list[HourlyPrice], price_area: str):
         save_year_to_file(year, list(merged_prices), price_area)
 
 
-def update_monthly(prices: list[HourlyPrice], price_area: str):
-    grouped = group_hourly_values_by_month(prices)
+def update_monthly(prices: list[Price], price_area: str):
+    grouped = group_values_by_month(prices)
     for month in grouped.keys():
         LOG.info("Updating monthly values", month=month, area=price_area)
         saved_prices = get_saved_prices_for_month(month, price_area)
@@ -141,8 +150,8 @@ def update_monthly(prices: list[HourlyPrice], price_area: str):
         save_month_to_file(month, list(merged_prices), price_area)
 
 
-def update_daily(prices: list[HourlyPrice], price_area: str):
-    grouped = group_hourly_values_by_day(prices)
+def update_daily(prices: list[Price], price_area: str):
+    grouped = group_values_by_day(prices)
     for day in grouped.keys():
         LOG.info("Updating daily values", day=day, area=price_area)
         saved_prices = get_saved_prices_for_day(day, price_area)
@@ -155,12 +164,12 @@ def update_daily(prices: list[HourlyPrice], price_area: str):
         save_day_to_file(day, list(merged_prices), price_area)
 
 
-def update_latest(prices: list[HourlyPrice], price_area: str):
+def update_latest(prices: list[Price], price_area: str):
     LOG.info("Updating latest values", price_area=price_area)
     today = datetime.now(tz=timezone.utc).date()
     tomorrow = today + timedelta(days=1)
     latest_prices = list()
-    grouped = group_hourly_values_by_day(prices)
+    grouped = group_values_by_day(prices)
     try:
         latest_prices.extend(grouped[today.strftime("%Y-%m-%d")])
         latest_prices.extend(grouped[tomorrow.strftime("%Y-%m-%d")])
@@ -175,7 +184,7 @@ def get_prices(start: datetime, end: datetime, price_area: str, security_token: 
     area_code = price_area_map[price_area]
 
     LOG.info(
-        "Reading hourly values", url=base_url, start=start, end=end, area_code=area_code
+        "Reading values", url=base_url, start=start, end=end, area_code=area_code
     )
     params = {
         "securityToken": security_token,
@@ -191,29 +200,31 @@ def get_prices(start: datetime, end: datetime, price_area: str, security_token: 
         "Received response",
         status_code=response.status_code,
         length=len(response.content),
+        content=response.content,
     )
-    print(response.text)
-
     timeseries = None
     try:
         timeseries = xmltodict.parse(response.text)["Publication_MarketDocument"][
             "TimeSeries"
         ]
-        pprint.pprint(timeseries)
+        LOG.info("Received timeseries", timeseries=timeseries)
     except KeyError:
         LOG.error("Problem with content of response", content=response.content)
         return
 
-    hourly_prices = []
+    prices = []
 
     try:
         for series in timeseries:
             ts = from_api_converter.structure(series, TimeSeries)
-            hourly_prices.extend(ts.data)
+            LOG.info("Handling time series", timeseries=ts)
+            resolution = ts.period.resolution
+            prices.extend(ts.data)
+
     except Exception as exc:
         print(transform_error(exc))
 
-    return hourly_prices
+    return prices
 
 
 @click.group()
@@ -245,10 +256,10 @@ def backfill(start: str, end: str, price_area: str, security_token: str):
 
     while current_point < end_dt:
         step_end = current_point + timedelta(days=14)
-        hourly_prices = get_prices(current_point, step_end, price_area, security_token)
-        update_yearly(hourly_prices, price_area)
-        update_monthly(hourly_prices, price_area)
-        update_daily(hourly_prices, price_area)
+        prices = get_prices(current_point, step_end, price_area, security_token)
+        update_yearly(prices, price_area)
+        update_monthly(prices, price_area)
+        update_daily(prices, price_area)
         current_point = step_end
         time.sleep(1)
 
@@ -281,11 +292,11 @@ def get_day_ahead_prices(
     now = datetime.now(tz=timezone.utc)
     start = now - timedelta(days=days_behind)
     end = now + timedelta(days=days_ahead)
-    hourly_prices = get_prices(start, end, price_area, security_token)
-    update_yearly(hourly_prices, price_area)
-    update_monthly(hourly_prices, price_area)
-    update_daily(hourly_prices, price_area)
-    update_latest(hourly_prices, price_area)
+    prices = get_prices(start, end, price_area, security_token)
+    update_yearly(prices, price_area)
+    update_monthly(prices, price_area)
+    update_daily(prices, price_area)
+    update_latest(prices, price_area)
 
 
 cli.add_command(backfill)
