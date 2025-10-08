@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Utilitarian Spot – Explorer</title>
+    <meta name="description" content="Explore electricity prices across all Swedish zones since 2014." />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- uPlot -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.iife.js"></script>
+</head>
+
+<body>
+    <main>
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 text-center">
+            <h1 class="mx-auto max-w-4xl font-display text-4xl sm:text-5xl font-medium tracking-tight text-slate-900">
+                Explorer – All Zones (SE1–SE4)
+            </h1>
+            <p class="mx-auto mt-4 max-w-2xl text-slate-700">
+                Combined stepped time series in UTC. Data aggregated yearly from 2014 to present.
+            </p>
+        </div>
+
+        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-8">
+            <div id="explorerChart" class="relative" style="width: 100%; height: 520px;">
+                <div id="explorerStatus" class="absolute inset-0 flex items-center justify-center text-slate-600">
+                    Loading all zones from 2014…
+                </div>
+            </div>
+        </div>
+
+        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-4 text-right text-xs text-slate-500">
+            Times in UTC. Prices in €/MWh.
+        </div>
+    </main>
+
+    <script>
+        function buildOptsAll(getWidth, seriesDefs) {
+            return {
+                title: null,
+                width: getWidth(),
+                height: 520,
+                legend: { show: false },
+                series: [
+                    {},
+                    ...seriesDefs.map(s => ({
+                        label: s.label,
+                        stroke: s.color,
+                        width: 1.5,
+                        paths: uPlot.paths.stepped({ align: -1 })
+                    }))
+                ],
+                axes: [
+                    {
+                        label: "Time (UTC)",
+                        values: (u, vals) => {
+                            let lastDay = null;
+                            return vals.map(v => {
+                                const d = new Date(v * 1000);
+                                const day = d.getUTCDate();
+                                const isMidnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0;
+                                let out;
+                                if (lastDay === null || day !== lastDay || isMidnight) {
+                                    out = d.toLocaleDateString('en-GB', { month: 'short', day: '2-digit', timeZone: 'UTC' });
+                                } else {
+                                    out = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+                                }
+                                lastDay = day;
+                                return out;
+                            });
+                        },
+                        grid: { show: true }
+                    },
+                    { label: "Price (€/MWh)", grid: { show: true } }
+                ],
+                scales: { x: { time: true } },
+                cursor: { show: true, x: true, y: true, points: { show: false } },
+                hooks: {
+                    init: [
+                        (u) => {
+                            const status = document.getElementById('explorerStatus');
+                            if (status) status.remove();
+
+                            const tt = document.createElement('div');
+                            tt.id = 'uplot-tooltip-all';
+                            tt.className = 'absolute z-10 rounded-md bg-slate-900/90 text-white text-xs px-2 py-1 shadow-lg pointer-events-none hidden';
+                            tt.style.transform = 'translate(12px, -24px)';
+                            u.over.appendChild(tt);
+                            u._ttAll = tt;
+                            u.over.addEventListener('mouseleave', () => tt.classList.add('hidden'));
+                        }
+                    ],
+                    setCursor: [
+                        (u) => {
+                            const tt = u._ttAll;
+                            if (!tt) return;
+                            const { left, top, idx } = u.cursor;
+                            if (left == null || top == null || idx == null || left < 0 || top < 0 || left > u.bbox.width || top > u.bbox.height) {
+                                tt.classList.add('hidden');
+                                return;
+                            }
+
+                            const xArr = u.data[0];
+                            const i = Math.max(0, Math.min(idx, xArr.length - 1));
+                            const xVal = xArr[i];
+                            const d = new Date(xVal * 1000);
+                            const timeStr = d.toLocaleString('en-GB', {
+                                timeZone: 'UTC',
+                                year: 'numeric',
+                                month: 'short',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                            });
+
+                            let html = `${timeStr} UTC`;
+                            for (let s = 1; s < u.data.length; s++) {
+                                const val = u.data[s][i];
+                                const label = seriesDefs[s - 1]?.label || `S${s}`;
+                                const color = seriesDefs[s - 1]?.color || '#999';
+                                const valStr = val == null ? '—' : `${val.toFixed(2)} €/MWh`;
+                                html += `<br><span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:2px;margin-right:6px"></span>${label}: <span class="font-semibold">${valStr}</span>`;
+                            }
+
+                            tt.innerHTML = html;
+                            tt.style.left = `${left}px`;
+                            tt.style.top = `${top}px`;
+                            tt.classList.remove('hidden');
+                        }
+                    ]
+                }
+            };
+        }
+
+        async function fetchAllYearsForZone(zoneId, startYear, endYear) {
+            const results = [];
+            for (let y = startYear; y <= endYear; y++) {
+                const url = `/electricity/${zoneId}/${y}/index.json`;
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) continue;
+                    const arr = await res.json();
+                    for (const item of arr) {
+                        results.push({
+                            ts: Math.floor(new Date(item.timestamp).getTime() / 1000),
+                            val: parseFloat(item.value)
+                        });
+                    }
+                } catch (_) {
+                    // skip missing or bad year files
+                }
+            }
+
+            // sort & dedupe by ts (last wins)
+            results.sort((a, b) => a.ts - b.ts);
+            const seen = new Map();
+            for (const r of results) seen.set(r.ts, r.val);
+            return seen; // Map<ts, val>
+        }
+
+        async function renderExplorer() {
+            const el = document.getElementById('explorerChart');
+            const getWidth = () => el.offsetWidth;
+
+            const startYear = 2014;
+            const endYear = new Date().getUTCFullYear();
+
+            const zones = [
+                { id: 'SE1', color: '#059669' },
+                { id: 'SE2', color: '#2563eb' },
+                { id: 'SE3', color: '#f59e0b' },
+                { id: 'SE4', color: '#dc2626' },
+            ];
+
+            try {
+                console.time('renderExplorer');
+                // fetch each zone sequentially to avoid too many concurrent requests
+                const zoneMaps = [];
+                for (const z of zones) {
+                    const map = await fetchAllYearsForZone(z.id, startYear, endYear);
+                    zoneMaps.push(map);
+                }
+
+                // union of all timestamps
+                const tsSet = new Set();
+                for (const m of zoneMaps) for (const ts of m.keys()) tsSet.add(ts);
+                const xTimes = Array.from(tsSet).sort((a, b) => a - b);
+
+                // aligned y arrays per zone
+                const seriesY = zoneMaps.map(m => xTimes.map(t => (m.has(t) ? m.get(t) : null)));
+
+                // datapoint counts
+                const perSeriesCounts = seriesY.map(a => a.reduce((acc, v) => acc + (v == null ? 0 : 1), 0));
+                const totalPoints = perSeriesCounts.reduce((a, b) => a + b, 0);
+                console.log('renderExplorer datapoints:', {
+                    xLen: xTimes.length,
+                    perSeries: zones.map((z, i) => ({ zone: z.id, points: perSeriesCounts[i] })),
+                    total: totalPoints,
+                });
+
+                const opts = buildOptsAll(getWidth, zones.map(z => ({ label: z.id, color: z.color })));
+                const chart = new uPlot(opts, [xTimes, ...seriesY], el);
+
+                const onResize = () => chart.setSize({ width: getWidth(), height: 520 });
+                window.addEventListener('resize', onResize);
+                console.timeEnd('renderExplorer');
+            } catch (e) {
+                const status = document.getElementById('explorerStatus');
+                if (status) status.textContent = 'Error loading price data.';
+                console.error('explorer', e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', renderExplorer);
+    </script>
+</body>
+
+</html>
