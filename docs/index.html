@@ -178,6 +178,7 @@
                 ];
 
                 try {
+                    console.time('renderAllZones');
                     const responses = await Promise.all(
                         zones.map(z => fetch(`/electricity/${z.id}/latest/index.json`).then(r => r.json()))
                     );
@@ -193,11 +194,21 @@
                         return xTimes.map(t => (m.has(t) ? m.get(t) : null));
                     });
 
+                    // datapoint counts
+                    const perSeriesCounts = seriesY.map(a => a.reduce((acc, v) => acc + (v == null ? 0 : 1), 0));
+                    const totalPoints = perSeriesCounts.reduce((a, b) => a + b, 0);
+                    console.log('renderAllZones datapoints:', {
+                        xLen: xTimes.length,
+                        perSeries: zones.map((z, i) => ({ zone: z.id, points: perSeriesCounts[i] })),
+                        total: totalPoints,
+                    });
+
                     const opts = buildOptsAll(getWidth, zones.map(z => ({ label: z.id, color: z.color })));
                     const chart = new uPlot(opts, [xTimes, ...seriesY], el);
 
                     const onResize = () => chart.setSize({ width: getWidth(), height: 400 });
                     window.addEventListener('resize', onResize);
+                    console.timeEnd('renderAllZones');
                 } catch (e) {
                     el.innerHTML = '<p class="text-center text-red-600">Error loading price data.</p>';
                     console.error('all-zones', e);
