@@ -2,267 +2,236 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <title>Utilitarian Spot</title>
-  <meta name="description" content="Access day ahead prices of electricity for your area. Simple, fast and free." />
-  <meta property="og:title" content="Utilitarian Spot" />
-  <meta property="og:description" content="Access day ahead prices of electricity for your area. Simple, fast and free." />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://spot.utilitarian.io" />
-  <meta property="og:image"
+    <meta charset="UTF-8" />
+    <title>Utilitarian Spot</title>
+    <meta name="description" content="Access day ahead prices of electricity for your area. Simple, fast and free." />
+    <meta property="og:title" content="Utilitarian Spot" />
+    <meta property="og:description"
+        content="Access day ahead prices of electricity for your area. Simple, fast and free." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://spot.utilitarian.io" />
+    <meta property="og:image"
         content="https://utilitarian-io-prod-static.s3.amazonaws.com/images/utilitarian_logo_on_dark.svg" />
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css" />
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
 
-  <!-- uPlot -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css" />
-  <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.iife.js"></script>
+    <!-- uPlot -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.iife.js"></script>
 </head>
 
 <body>
-  <main>
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 text-center lg:pt-32">
-      <h1 class="mx-auto max-w-4xl font-display text-5xl font-medium tracking-tight text-slate-900 sm:text-7xl">
-        Utilitarian
-        <span class="relative whitespace-nowrap text-green-600">
-          <svg aria-hidden="true" viewBox="0 0 418 42"
-               class="absolute top-2/3 left-0 h-[0.58em] w-full fill-green-300/70"
-               preserveAspectRatio="none">
-            <path
-              d="M203.371.916c-26.013-2.078-76.686 1.963-124.73 9.946L67.3 12.749C35.421 18.062 18.2 21.766 6.004 25.934 1.244 27.561.828 27.778.874 28.61c.07 1.214.828 1.121 9.595-1.176 9.072-2.377 17.15-3.92 39.246-7.496C123.565 7.986 157.869 4.492 195.942 5.046c7.461.108 19.25 1.696 19.17 2.582-.107 1.183-7.874 4.31-25.75 10.366-21.992 7.45-35.43 12.534-36.701 13.884-2.173 2.308-.202 4.407 4.442 4.734 2.654.187 3.263.157 15.593-.78 35.401-2.686 57.944-3.488 88.365-3.143 46.327.526 75.721 2.23 130.788 7.584 19.787 1.924 20.814 1.98 24.557 1.332l.066-.011c1.201-.203 1.53-1.825.399-2.335-2.911-1.31-4.893-1.604-22.048-3.261-57.509-5.556-87.871-7.36-132.059-7.842-23.239-.254-33.617-.116-50.627.674-11.629.54-42.371 2.494-46.696 2.967-2.359.259 8.133-3.625 26.504-9.81 23.239-7.825 27.934-10.149 28.304-14.005.417-4.348-3.529-6-16.878-7.066Z">
-            </path>
-          </svg>
-          <span class="relative">Spot</span>
-        </span>
-      </h1>
-      <p class="mx-auto mt-6 max-w-2xl text-lg tracking-tight text-slate-700">
-        Access day ahead prices of electricity for your area. Simple, fast and free.
-      </p>
-      <div class="my-10 flex justify-center gap-x-6">
-        <a class="group inline-flex items-center justify-center rounded-full py-2 px-4 text-sm font-semibold bg-slate-900 text-white hover:bg-slate-700"
-           href="/electricity/SE1/latest">SE1</a>
-        <a class="group inline-flex items-center justify-center rounded-full py-2 px-4 text-sm font-semibold bg-slate-900 text-white hover:bg-slate-700"
-           href="/electricity/SE2/latest">SE2</a>
-        <a class="group inline-flex items-center justify-center rounded-full py-2 px-4 text-sm font-semibold bg-slate-900 text-white hover:bg-slate-700"
-           href="/electricity/SE3/latest">SE3</a>
-        <a class="group inline-flex items-center justify-center rounded-full py-2 px-4 text-sm font-semibold bg-slate-900 text-white hover:bg-slate-700"
-           href="/electricity/SE4/latest">SE4</a>
-      </div>
-    </div>
-
-    <div class="pb-8 text-center">
-      <img class="mx-auto h-5 w-auto"
-           src="https://github.com/u9n/spot/actions/workflows/get_latest_electricity_prices.yml/badge.svg"
-           alt="github action status" />
-    </div>
-
-    <div class="mx-auto max-w-5xl">
-      <h2 class="mx-auto max-w-3xl font-display text-center font-medium tracking-tight text-slate-900">
-        Live Electricity Prices - SE1
-      </h2>
-
-      <div class="my-8">
-        <div id="priceChart" class="relative" style="width: 100%; height: 400px;"></div>
-      </div>
-    </div>
-
-    <script>hljs.highlightAll();</script>
-
-    <script>
-      async function loadPriceChart() {
-        try {
-          const response = await fetch('/electricity/SE1/latest/index.json');
-          const data = await response.json();
-
-          const times = [];
-          const prices = [];
-
-          data.forEach(item => {
-            const ts = new Date(item.timestamp).getTime() / 1000;
-            times.push(ts);
-            prices.push(parseFloat(item.value));
-          });
-
-          const opts = {
-            title: "SE1 Electricity Prices (€/MWh)",
-            width: document.getElementById('priceChart').offsetWidth,
-            height: 400,
-            legend: { show: false },
-            series: [
-              {},
-              {
-                stroke: "#059669",
-                width: 2,
-                paths: uPlot.paths.stepped({ align: -1 })
-              }
-            ],
-            axes: [
-              {
-                label: "Time (UTC)",
-                values: (u, vals) => {
-                  let lastDay = null;
-                  return vals.map(v => {
-                    const d = new Date(v * 1000);
-                    const day = d.getUTCDate();
-                    const isMidnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0;
-                    let out;
-                    if (lastDay === null || day !== lastDay || isMidnight) {
-                      out = d.toLocaleDateString('en-GB', {
-                        month: 'short',
-                        day: '2-digit',
-                        timeZone: 'UTC'
-                      });
-                    } else {
-                      out = d.toLocaleTimeString('en-GB', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                        timeZone: 'UTC'
-                      });
-                    }
-                    lastDay = day;
-                    return out;
-                  });
-                },
-                grid: { show: true }
-              },
-              {
-                label: "Price (€/MWh)",
-                grid: { show: true }
-              }
-            ],
-            scales: { x: { time: true } },
-            cursor: { show: true, x: true, y: true, points: { show: false } },
-            bands: [], // will hold the "now" line
-            hooks: {
-              init: [
-                (u) => {
-                  // Tooltip
-                  const tt = document.createElement('div');
-                  tt.id = 'uplot-tooltip';
-                  tt.className =
-                    'absolute z-10 rounded-md bg-slate-900/90 text-white text-xs px-2 py-1 shadow-lg pointer-events-none hidden';
-                  tt.style.transform = 'translate(12px, -24px)';
-                  u.root.querySelector('.u-over').appendChild(tt);
-                  u._tt = tt;
-                  u.root.querySelector('.u-over').addEventListener('mouseleave', () => tt.classList.add('hidden'));
-
-                  // Create "now" line element
-                  const nowLine = document.createElement('div');
-                  nowLine.id = 'now-line';
-                  nowLine.className = 'absolute w-px bg-red-500/80 pointer-events-none';
-                  nowLine.style.height = '100%';
-                  nowLine.style.top = '0';
-                  nowLine.style.display = 'none';
-                  u.root.querySelector('.u-over').appendChild(nowLine);
-                  u._nowLine = nowLine;
-                }
-              ],
-              setCursor: [
-                (u) => {
-                  const tt = u._tt;
-                  if (!tt) return;
-                  const { left, top, idx } = u.cursor;
-                  if (left == null || top == null || idx == null ||
-                      left < 0 || top < 0 || left > u.bbox.width || top > u.bbox.height) {
-                    tt.classList.add('hidden');
-                    return;
-                  }
-
-                  const xArr = u.data[0];
-                  const yArr = u.data[1];
-                  const curXVal = u.posToVal(left, 'x');
-                  const xIdx = Math.max(0, Math.min(idx, xArr.length - 1));
-                  const idxXVal = xArr[xIdx];
-                  const yIdx = (curXVal < idxXVal && xIdx > 0) ? xIdx - 1 : xIdx;
-                  const xVal = xArr[xIdx];
-                  const yVal = yArr[yIdx];
-                  if (yVal == null) {
-                    tt.classList.add('hidden');
-                    return;
-                  }
-
-                  const d = new Date(xVal * 1000);
-                  const timeStr = d.toLocaleString('en-GB', {
-                    timeZone: 'UTC',
-                    year: 'numeric',
-                    month: 'short',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                  });
-
-                  tt.innerHTML = `${timeStr} UTC<br><span class="font-semibold">${yVal.toFixed(2)} €/MWh</span>`;
-                  tt.style.left = `${left}px`;
-                  tt.style.top = `${top}px`;
-                  tt.classList.remove('hidden');
-                }
-              ]
-            }
-          };
-
-          const chart = new uPlot(opts, [times, prices], document.getElementById('priceChart'));
-
-          // 🕒 Update the "now" line position every 30 seconds
-          function updateNowLine() {
-            const now = Date.now() / 1000; // seconds
-            const { _nowLine } = chart;
-            const inRange = now >= chart.scales.x.min && now <= chart.scales.x.max;
-            if (inRange) {
-              const left = chart.valToPos(now, 'x', true);
-              _nowLine.style.left = `${left}px`;
-              _nowLine.style.display = 'block';
-            } else {
-              _nowLine.style.display = 'none';
-            }
-          }
-
-          updateNowLine();
-          setInterval(updateNowLine, 30000);
-
-          window.addEventListener('resize', () => {
-            chart.setSize({
-              width: document.getElementById('priceChart').offsetWidth,
-              height: 400
-            });
-            updateNowLine();
-          });
-
-        } catch (e) {
-          document.getElementById('priceChart').innerHTML =
-            '<p class="text-center text-red-600">Error loading price data.</p>';
-          console.error(e);
-        }
-      }
-
-      document.addEventListener('DOMContentLoaded', loadPriceChart);
-    </script>
-  </main>
-
-  <footer class="bg-slate-50 mt-16">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="py-16 text-center text-sm text-slate-500">
-        <p class="my-2">Prices are fetched from the EU ENTSO-E Transparency Platform.</p>
-        <p class="my-2">Time is in UTC and prices are in €/MWh.</p>
-      </div>
-      <div class="flex flex-col items-center border-t border-slate-400/10 py-10 sm:flex-row-reverse sm:justify-between">
-        <div class="flex gap-x-6">
-          <a class="group" aria-label="Utilitarian on GitHub" href="https://github.com/u9n/">
-            <svg aria-hidden="true" class="h-6 w-6 fill-slate-500 group-hover:fill-slate-700">
-              <path
-                d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z">
-              </path>
-            </svg>
-          </a>
+    <main>
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 text-center lg:pt-32">
+            <h1 class="mx-auto max-w-4xl font-display text-5xl font-medium tracking-tight text-slate-900 sm:text-7xl">
+                Utilitarian
+                <span class="relative whitespace-nowrap text-green-600">
+                    <svg aria-hidden="true" viewBox="0 0 418 42"
+                        class="absolute top-2/3 left-0 h-[0.58em] w-full fill-green-300/70" preserveAspectRatio="none">
+                        <path
+                            d="M203.371.916c-26.013-2.078-76.686 1.963-124.73 9.946L67.3 12.749C35.421 18.062 18.2 21.766 6.004 25.934 1.244 27.561.828 27.778.874 28.61c.07 1.214.828 1.121 9.595-1.176 9.072-2.377 17.15-3.92 39.246-7.496C123.565 7.986 157.869 4.492 195.942 5.046c7.461.108 19.25 1.696 19.17 2.582-.107 1.183-7.874 4.31-25.75 10.366-21.992 7.45-35.43 12.534-36.701 13.884-2.173 2.308-.202 4.407 4.442 4.734 2.654.187 3.263.157 15.593-.78 35.401-2.686 57.944-3.488 88.365-3.143 46.327.526 75.721 2.23 130.788 7.584 19.787 1.924 20.814 1.98 24.557 1.332l.066-.011c1.201-.203 1.53-1.825.399-2.335-2.911-1.31-4.893-1.604-22.048-3.261-57.509-5.556-87.871-7.36-132.059-7.842-23.239-.254-33.617-.116-50.627.674-11.629.54-42.371 2.494-46.696 2.967-2.359.259 8.133-3.625 26.504-9.81 23.239-7.825 27.934-10.149 28.304-14.005.417-4.348-3.529-6-16.878-7.066Z">
+                        </path>
+                    </svg>
+                    <span class="relative">Spot</span>
+                </span>
+            </h1>
+            <p class="mx-auto mt-6 max-w-2xl text-lg tracking-tight text-slate-700">
+                Access day ahead prices of electricity for your area. Simple, fast and free.
+            </p>
+            <div class="my-10 flex justify-center gap-x-6">
+                <a class="group inline-flex items-center justify-center rounded-full py-2 px-4 text-sm font-semibold bg-slate-900 text-white hover:bg-slate-700"
+                    href="/electricity/SE1/latest">SE1</a>
+                <a class="group inline-flex items-center justify-center rounded-full py-2 px-4 text-sm font-semibold bg-slate-900 text-white hover:bg-slate-700"
+                    href="/electricity/SE2/latest">SE2</a>
+                <a class="group inline-flex items-center justify-center rounded-full py-2 px-4 text-sm font-semibold bg-slate-900 text-white hover:bg-slate-700"
+                    href="/electricity/SE3/latest">SE3</a>
+                <a class="group inline-flex items-center justify-center rounded-full py-2 px-4 text-sm font-semibold bg-slate-900 text-white hover:bg-slate-700"
+                    href="/electricity/SE4/latest">SE4</a>
+            </div>
         </div>
-        <p class="mt-6 text-sm text-slate-500 sm:mt-0">
-          Free service from <a class="text-slate-700 hover:text-slate-900" href="https://utilitarian.io">utilitarian.io</a>
-        </p>
-      </div>
-    </div>
-  </footer>
+
+        <div class="pb-8 text-center">
+            <img class="mx-auto h-5 w-auto"
+                src="https://github.com/u9n/spot/actions/workflows/get_latest_electricity_prices.yml/badge.svg"
+                alt="github action status" />
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+            <h2 class="mx-auto max-w-3xl font-display text-center font-medium tracking-tight text-slate-900">
+                Live Electricity Prices – All Zones (SE1–SE4)
+            </h2>
+
+            <div class="my-8">
+                <div id="priceChartAll" class="relative" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
+
+        <script>hljs.highlightAll();</script>
+
+        <script>
+            function buildOptsAll(getWidth, seriesDefs) {
+                return {
+                    title: null,
+                    width: getWidth(),
+                    height: 400,
+                    legend: { show: false },
+                    series: [
+                        {},
+                        ...seriesDefs.map(s => ({
+                            label: s.label,
+                            stroke: s.color,
+                            width: 2,
+                            paths: uPlot.paths.stepped({ align: -1 })
+                        }))
+                    ],
+                    axes: [
+                        {
+                            label: "Time (UTC)",
+                            values: (u, vals) => {
+                                let lastDay = null;
+                                return vals.map(v => {
+                                    const d = new Date(v * 1000);
+                                    const day = d.getUTCDate();
+                                    const isMidnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0;
+                                    let out;
+                                    if (lastDay === null || day !== lastDay || isMidnight) {
+                                        out = d.toLocaleDateString('en-GB', { month: 'short', day: '2-digit', timeZone: 'UTC' });
+                                    } else {
+                                        out = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+                                    }
+                                    lastDay = day;
+                                    return out;
+                                });
+                            },
+                            grid: { show: true }
+                        },
+                        { label: "Price (€/MWh)", grid: { show: true } }
+                    ],
+                    scales: { x: { time: true } },
+                    cursor: { show: true, x: true, y: true, points: { show: false } },
+                    hooks: {
+                        init: [
+                            (u) => {
+                                const tt = document.createElement('div');
+                                tt.id = 'uplot-tooltip-all';
+                                tt.className = 'absolute z-10 rounded-md bg-slate-900/90 text-white text-xs px-2 py-1 shadow-lg pointer-events-none hidden';
+                                tt.style.transform = 'translate(12px, -24px)';
+                                u.over.appendChild(tt);
+                                u._ttAll = tt;
+                                u.over.addEventListener('mouseleave', () => tt.classList.add('hidden'));
+                            }
+                        ],
+                        setCursor: [
+                            (u) => {
+                                const tt = u._ttAll;
+                                if (!tt) return;
+                                const { left, top, idx } = u.cursor;
+                                if (left == null || top == null || idx == null || left < 0 || top < 0 || left > u.bbox.width || top > u.bbox.height) {
+                                    tt.classList.add('hidden');
+                                    return;
+                                }
+
+                                const xArr = u.data[0];
+                                const i = Math.max(0, Math.min(idx, xArr.length - 1));
+                                const xVal = xArr[i];
+                                const d = new Date(xVal * 1000);
+                                const timeStr = d.toLocaleString('en-GB', {
+                                    timeZone: 'UTC',
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false
+                                });
+
+                                let html = `${timeStr} UTC`;
+                                for (let s = 1; s < u.data.length; s++) {
+                                    const val = u.data[s][i];
+                                    const label = seriesDefs[s - 1]?.label || `S${s}`;
+                                    const color = seriesDefs[s - 1]?.color || '#999';
+                                    const valStr = val == null ? '—' : `${val.toFixed(2)} €/MWh`;
+                                    html += `<br><span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:2px;margin-right:6px"></span>${label}: <span class="font-semibold">${valStr}</span>`;
+                                }
+
+                                tt.innerHTML = html;
+                                tt.style.left = `${left}px`;
+                                tt.style.top = `${top}px`;
+                                tt.classList.remove('hidden');
+                            }
+                        ]
+                    }
+                };
+            }
+
+            async function renderAllZones() {
+                const el = document.getElementById('priceChartAll');
+                const getWidth = () => el.offsetWidth;
+
+                const zones = [
+                    { id: 'SE1', color: '#059669' },
+                    { id: 'SE2', color: '#2563eb' },
+                    { id: 'SE3', color: '#f59e0b' },
+                    { id: 'SE4', color: '#dc2626' },
+                ];
+
+                try {
+                    const responses = await Promise.all(
+                        zones.map(z => fetch(`/electricity/${z.id}/latest/index.json`).then(r => r.json()))
+                    );
+
+                    // union of all timestamps (seconds), sorted
+                    const tsSet = new Set();
+                    responses.forEach(arr => arr.forEach(it => tsSet.add(Math.floor(new Date(it.timestamp).getTime() / 1000))));
+                    const xTimes = Array.from(tsSet).sort((a, b) => a - b);
+
+                    // build aligned y-arrays per zone
+                    const seriesY = responses.map(arr => {
+                        const m = new Map(arr.map(it => [Math.floor(new Date(it.timestamp).getTime() / 1000), parseFloat(it.value)]));
+                        return xTimes.map(t => (m.has(t) ? m.get(t) : null));
+                    });
+
+                    const opts = buildOptsAll(getWidth, zones.map(z => ({ label: z.id, color: z.color })));
+                    const chart = new uPlot(opts, [xTimes, ...seriesY], el);
+
+                    const onResize = () => chart.setSize({ width: getWidth(), height: 400 });
+                    window.addEventListener('resize', onResize);
+                } catch (e) {
+                    el.innerHTML = '<p class="text-center text-red-600">Error loading price data.</p>';
+                    console.error('all-zones', e);
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', renderAllZones);
+        </script>
+    </main>
+
+    <footer class="bg-slate-50 mt-16">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="py-16 text-center text-sm text-slate-500">
+                <p class="my-2">Prices are fetched from the EU ENTSO-E Transparency Platform.</p>
+                <p class="my-2">Time is in UTC and prices are in €/MWh.</p>
+            </div>
+            <div
+                class="flex flex-col items-center border-t border-slate-400/10 py-10 sm:flex-row-reverse sm:justify-between">
+                <div class="flex gap-x-6">
+                    <a class="group" aria-label="Utilitarian on GitHub" href="https://github.com/u9n/">
+                        <svg aria-hidden="true" class="h-6 w-6 fill-slate-500 group-hover:fill-slate-700">
+                            <path
+                                d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z">
+                            </path>
+                        </svg>
+                    </a>
+                </div>
+                <p class="mt-6 text-sm text-slate-500 sm:mt-0">
+                    Free service from <a class="text-slate-700 hover:text-slate-900"
+                        href="https://utilitarian.io">utilitarian.io</a>
+                </p>
+            </div>
+        </div>
+    </footer>
 </body>
+
 </html>
