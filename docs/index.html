@@ -18,6 +18,9 @@
     <!-- uPlot -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.iife.js"></script>
+    <!-- highlight.js -->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
 </head>
 
 <body>
@@ -72,6 +75,34 @@
                 </a>
             </div>
         </div>
+
+        <div class="mx-auto max-w-5xl ">
+            <h2 class="mx-auto max-w-3xl font-display text-center font-medium tracking-tight text-slate-900 ">
+                Code example in Python</h2>
+
+            <div>
+                <pre>
+            <code class="language-python">
+                import httpx
+    
+                # get latest prices for SE1
+                latest_prices = httpx.get(url="spot.utilitarian.io/electricity/SE1/latest")
+    
+                # all prices for 2022 for SE2
+                prices_year_2022 = httpx.get(url="spot.utilitarian.io/electricity/SE2/2022")
+    
+                # prices for May 2022 for SE3
+                may_prices = httpx.get(url="spot.utilitarian.io/electricity/SE3/2022/05")
+    
+                # prices for May 3d 2022 for SE4
+                may_third_prices = httpx.get(url="spot.utilitarian.io/electricity/SE4/2022/05/03")
+    
+            </code>
+        </pre>
+            </div>
+        </div>
+        <script>hljs.highlightAll();</script>
+
 
 
 
