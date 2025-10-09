@@ -16,7 +16,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.9"
+        python-version: "3.12"
     - name: Install deps
       run: pip install -r requirements.txt
     - name: Update SE1
