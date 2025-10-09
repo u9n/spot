@@ -31,6 +31,18 @@ jobs:
       run:  python scripts/transparancy.py get-day-ahead-prices --price-area=DK1 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
     - name: Update DK2
       run:  python scripts/transparancy.py get-day-ahead-prices --price-area=DK2 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update NO1
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=NO1 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update NO2
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=NO2 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update NO3
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=NO3 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update NO4
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=NO4 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update NO5
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=NO5 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update FI
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=FI --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}t 
 
     - name: setup git config
       run: |
