@@ -60,21 +60,68 @@ class TimeSeries:
     energy_unit: str
     period: Period
 
-    @property
-    def data(self):
+    def quarterly_data(self):
         out = []
+        quarterly_pointer = 1
         for point in self.period.data_points:
-            if self.period.resolution == "PT60M":  # hourly
-                timestamp = self.period.interval.start + timedelta(hours=point.position - 1)
-            elif self.period.resolution == "PT15M":
+            if quarterly_pointer == point.position:
+                # We have a price for this point
                 timestamp = self.period.interval.start + timedelta(minutes=(15 * (point.position-1)))
+                quarterly_pointer += 1
+                price = Price(timestamp, str(point.price))
+                out.append(price)
             else:
-                raise ValueError(f"Invalid period resolution, {self.period.resolution}")
+                while quarterly_pointer <= point.position:
+                    timestamp = self.period.interval.start + timedelta(minutes=(15 * (quarterly_pointer-1)))
+                    quarterly_pointer += 1
+                    price = Price(timestamp, str(point.price))
+                    out.append(price)
 
-            price = Price(timestamp, str(point.price))
-            out.append(price)
+        if quarterly_pointer != 96:
+            # We are missing some prices on the end:
+            while quarterly_pointer <= 96:
+                timestamp = self.period.interval.start + timedelta(minutes=(15 * (quarterly_pointer-1)))
+                quarterly_pointer += 1
+                price = Price(timestamp, str(point.price))
+                out.append(price)
 
         return out
+
+
+    def hourly_data(self):
+        out = []
+        hourly_pointer = 1
+        for point in self.period.data_points:
+            if hourly_pointer == point.position:
+                timestamp = self.period.interval.start + timedelta(hours=point.position - 1)
+                hourly_pointer += 1
+                price = Price(timestamp, str(point.price))
+                out.append(price)
+            else:
+                while hourly_pointer <= point.position:
+                    timestamp = self.period.interval.start + timedelta(hours=hourly_pointer - 1)
+                    hourly_pointer += 1
+                    price = Price(timestamp, str(point.price))
+                    out.append(price)
+        if hourly_pointer != 24:
+            # We are missing some prices on the end:
+            while hourly_pointer <= 24:
+                timestamp = self.period.interval.start + timedelta(hours=hourly_pointer - 1)
+                hourly_pointer += 1
+                price = Price(timestamp, str(point.price))
+                out.append(price)
+
+        return out
+
+    @property
+    def data(self):
+        if self.period.resolution == "PT60M":  # hourly
+            return self.hourly_data()
+        elif self.period.resolution == "PT15M":
+            return self.quarterly_data()
+        else:
+            raise ValueError(f"Invalid period resolution, {self.period.resolution}")
+    
 
 
 def structure_resultion(resolution_string: str, klass: Type) -> int:
