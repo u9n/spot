@@ -27,6 +27,10 @@ jobs:
       run:  python scripts/transparancy.py get-day-ahead-prices --price-area=SE3 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
     - name: Update SE4
       run:  python scripts/transparancy.py get-day-ahead-prices --price-area=SE4 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update DK1
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=DK1 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update DK2
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=DK2 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
 
     - name: setup git config
       run: |
