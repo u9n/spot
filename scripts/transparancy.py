@@ -336,7 +336,7 @@ def backfill(start: str, end: str, price_area: str, security_token: str):
     "--price-area",
     required=True,
     help="Name of price area",
-    type=click.Choice(["SE1", "SE2", "SE3", "SE4"]),
+    type=click.Choice(price_area_map.keys()),
 )
 @click.option(
     "--security-token", envvar="TRANSPARENCY_PLATFORM_SECURITY_TOKEN", type=str
