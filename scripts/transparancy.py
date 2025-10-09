@@ -166,6 +166,8 @@ price_area_map: dict[str, str] = {
     "SE2": "10Y1001A1001A45N",
     "SE3": "10Y1001A1001A46L",
     "SE4": "10Y1001A1001A47J",
+    "DK1": "10YDK-1--------W",
+    "DK2": "10YDK-2--------M",
 }
 
 
@@ -290,7 +292,7 @@ def cli():
     "--price-area",
     required=True,
     help="Name of price area",
-    type=click.Choice(["SE1", "SE2", "SE3", "SE4"]),
+    type=click.Choice(["SE1", "SE2", "SE3", "SE4", "DK1", "DK2"]),
 )
 @click.option(
     "--security-token", envvar="TRANSPARENCY_PLATFORM_SECURITY_TOKEN", type=str
