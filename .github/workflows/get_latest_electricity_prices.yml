@@ -42,7 +42,7 @@ jobs:
     - name: Update NO5
       run:  python scripts/transparancy.py get-day-ahead-prices --price-area=NO5 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
     - name: Update FI
-      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=FI --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}t 
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=FI --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }} 
 
     - name: setup git config
       run: |
