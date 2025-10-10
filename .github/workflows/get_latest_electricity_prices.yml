@@ -43,6 +43,64 @@ jobs:
       run:  python scripts/transparancy.py get-day-ahead-prices --price-area=NO5 --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
     - name: Update FI
       run:  python scripts/transparancy.py get-day-ahead-prices --price-area=FI --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }} 
+    - name: Update DE_LU
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=DE_LU --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update AT
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=AT --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update FR
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=FR --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update BE
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=BE --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update NL
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=NL --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update PL
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=PL --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update EE
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=EE --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update LT
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=LT --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update LV
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=LV --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update IT-NORTH
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=IT-NORTH --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update IT-CENTRE_NORTH
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=IT-CENTRE_NORTH --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update IT-CENTRE_SOUTH
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=IT-CENTRE_SOUTH --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update IT-SOUTH
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=IT-SOUTH --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update IT-SICILY
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=IT-SICILY --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update IT-SARDINIA
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=IT-SARDINIA --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update IT-CALABRIA
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=IT-CALABRIA --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update CH
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=CH --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update ES
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=ES --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update PT
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=PT --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update SK
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=SK --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update SI
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=SI --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update CZ
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=CZ --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update HU
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=HU --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update HR
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=HR --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update RO
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=RO --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update RS
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=RS --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update BG
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=BG --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update GR
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=GR --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    - name: Update SEM
+      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=SEM --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
 
     - name: setup git config
       run: |

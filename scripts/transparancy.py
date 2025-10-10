@@ -162,18 +162,50 @@ from_api_converter.register_structure_hook(
 )
 
 price_area_map: dict[str, str] = {
-    "SE1": "10Y1001A1001A44P",
-    "SE2": "10Y1001A1001A45N",
-    "SE3": "10Y1001A1001A46L",
-    "SE4": "10Y1001A1001A47J",
-    "DK1": "10YDK-1--------W",
-    "DK2": "10YDK-2--------M",
-    "NO1": "10YNO-1--------2",
-    "NO2": "10YNO-2--------T",
-    "NO3": "10YNO-3--------J",
-    "NO4": "10YNO-4--------9",
-    "NO5": "10Y1001A1001A48H",
-    "FI": "10YFI-1--------U"
+    "SE1": "10Y1001A1001A44P",  # Sweden
+    "SE2": "10Y1001A1001A45N",  # Sweden
+    "SE3": "10Y1001A1001A46L",  # Sweden
+    "SE4": "10Y1001A1001A47J",  # Sweden
+    "DK1": "10YDK-1--------W",  # Denmark
+    "DK2": "10YDK-2--------M",  # Denmark
+    "NO1": "10YNO-1--------2",  # Norway
+    "NO2": "10YNO-2--------T",  # Norway
+    "NO3": "10YNO-3--------J",  # Norway
+    "NO4": "10YNO-4--------9",  # Norway
+    "NO5": "10Y1001A1001A48H",  # Norway
+    "FI": "10YFI-1--------U",  # Finland
+    "DE_LU": "10Y1001A1001A82H",  # Germany
+    "AT": "10YAT-APG------L",  # Austria
+    "FR": "10YFR-RTE------C",  # France
+    "BE": "10YBE----------2",  # Belgium
+    "NL": "10YNL----------L",  # Netherlands
+    "PL": "10YPL-AREA-----S",  # Poland
+    "EE": "10Y1001A1001A39I",  # Estonia
+    "LT": "10YLT-1001A0008Q",  # Lithuania
+    "LV": "10YLV-1001A00074",  # Latvia
+    "IT-NORTH": "10Y1001A1001A73I",  # Italy
+    "IT-CENTRE_NORTH": "10Y1001A1001A70O",  # Italy
+    "IT-CENTRE_SOUTH": "10Y1001A1001A71M",  # Italy
+    "IT-SOUTH": "10Y1001A1001A788",  # Italy
+    "IT-SICILY": "10Y1001A1001A75E",  # Italy
+    "IT-SARDINIA": "10Y1001A1001A74G",  # Italy
+    "IT-CALABRIA": "10Y1001C--00096J",  # Italy
+    "CH": "10YCH-SWISSGRIDZ",  # Switzerland
+    "ES": "10YES-REE------0",  # Spain
+    "PT": "10YPT-REN------W",  # Portugal
+    "SK": "10YSK-SEPS-----K",  # Slovakia
+    "SI": "10YSI-ELES-----O",  # Slovenia
+    "CZ": "10YCZ-CEPS-----N",  # Czech Republic
+    "HU": "10YHU-MAVIR----U",  # Hungary
+    "HR": "10YHR-HEP------M",  # Croatia
+    "RO": "10YRO-TEL------P",  # Romania
+    "RS": "10YCS-SERBIATSOV",   # Serbia
+    "BG": "10YCA-BULGARIA-R",  # Bulgaria
+    "GR": "10YGR-HTSO-----Y",  # Greece
+    "SEM": "10Y1001A1001A59C",  # Ireland (Single Electricity Market)  old data has 30 min values.
+
+
+
 }
 
 
