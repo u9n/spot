@@ -99,8 +99,8 @@ jobs:
       run:  python scripts/transparancy.py get-day-ahead-prices --price-area=BG --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
     - name: Update GR
       run:  python scripts/transparancy.py get-day-ahead-prices --price-area=GR --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
-    - name: Update SEM
-      run:  python scripts/transparancy.py get-day-ahead-prices --price-area=SEM --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
+    #- name: Update SEM
+    #  run:  python scripts/transparancy.py get-day-ahead-prices --price-area=SEM --security-token=${{ secrets.TRANSPARENCY_PLATFORM_SECURITY_TOKEN }}
 
     - name: setup git config
       run: |
