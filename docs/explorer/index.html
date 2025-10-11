@@ -3,220 +3,416 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Utilitarian Spot – Explorer</title>
-    <meta name="description" content="Explore electricity prices across all Swedish zones since 2014." />
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Electricity Price Explorer – Compare and Analyze EU & Nordic Prices | Utilitarian Spot</title>
+    <meta name="description"
+        content="Explore and compare historical and day‑ahead electricity prices across EU and Nordic zones. Select multiple areas, set a date range, and generate shareable links. Data in UTC from ENTSO‑E. Free, fast, and reliable for analysis and automation." />
+    <meta name="keywords"
+        content="electricity prices explorer, energy price comparison, EU electricity prices, Nordic electricity prices, day‑ahead prices, historical electricity data, ENTSO‑E, SE1, SE2, SE3, SE4, DK1, DK2, NO1, NO2, NO3, NO4, NO5, FI, DE_LU, AT, FR, BE, NL, PL, EE, LT, LV, IT North, Spain ES, Portugal PT" />
+    <meta property="og:title" content="Electricity Price Explorer – Compare EU & Nordic Prices" />
+    <meta property="og:description"
+        content="Interactive explorer for EU/Nordic electricity prices. Compare multiple zones, pick date ranges, and share results. UTC timestamps; €/MWh; data from ENTSO‑E." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://spot.utilitarian.io/explorer/" />
+    <meta property="og:image"
+        content="https://utilitarian-io-prod-static.s3.amazonaws.com/images/utilitarian_logo_on_dark.svg" />
+    <link rel="canonical" href="https://spot.utilitarian.io/explorer/" />
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- uPlot -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.iife.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 
-<body>
-    <main>
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 text-center">
-            <h1 class="mx-auto max-w-4xl font-display text-4xl sm:text-5xl font-medium tracking-tight text-slate-900">
-                Explorer – All Zones (SE1–SE4)
-            </h1>
-            <p class="mx-auto mt-4 max-w-2xl text-slate-700">
-                Combined stepped time series in UTC. Data aggregated yearly from 2014 to present.
-            </p>
+<body class="bg-white">
+    <main class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8" x-data="explorer()" x-init="init()">
+        <h1 class="text-2xl font-semibold text-slate-900 text-center">Electricity Price Explorer</h1>
+
+
+        <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div>
+                <label class="block mb-2 text-sm text-slate-600">Zones</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Available zones -->
+                    <div class="rounded-md border border-slate-300">
+                        <div class="px-3 py-2 border-b border-slate-200 text-xs font-medium text-slate-600">Available
+                        </div>
+                        <div class="max-h-40 overflow-auto py-1">
+                            <template x-for="z in availableZones()" :key="z.code">
+                                <button type="button" @click="addZone(z.code)"
+                                    class="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2">
+                                    <span x-text="z.flag"></span>
+                                    <span class="font-medium" x-text="z.code"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Selected zones -->
+                    <div class="rounded-md border border-slate-300">
+                        <div class="px-3 py-2 border-b border-slate-200 text-xs font-medium text-slate-600">Selected
+                        </div>
+                        <div class="max-h-40 overflow-auto py-1">
+                            <template x-for="code in selectedZones" :key="code">
+                                <button type="button" @click="removeZone(code)"
+                                    class="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2">
+                                    <span x-text="zoneByCode(code)?.flag || ''"></span>
+                                    <span class="font-medium" x-text="code"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label class="block mb-1 text-sm text-slate-600">From</label>
+                <input type="date" x-model="fromDate" @change="onDateChange"
+                    class="rounded-md border border-slate-300 px-3 py-2 text-sm w-full" />
+            </div>
+            <div>
+                <label class="block mb-1 text-sm text-slate-600">To</label>
+                <input type="date" x-model="toDate" @change="onDateChange"
+                    class="rounded-md border border-slate-300 px-3 py-2 text-sm w-full" />
+            </div>
         </div>
 
-        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-8">
-            <div id="explorerChart" class="relative" style="width: 100%; height: 520px;">
-                <div id="explorerStatus" class="absolute inset-0 flex items-center justify-center text-slate-600">
-                    Loading all zones from 2014…
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+                <button @click="setPrevMonth" type="button"
+                    class="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">Last
+                    month</button>
+                <button @click="setPrevYear" type="button"
+                    class="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">Last
+                    year</button>
+            </div>
+            <div class="relative inline-block">
+                <button @click="openShare" type="button"
+                    class="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                    <!-- Heroicons outline: rectangle-stack -->
+                    <svg class="w-4 h-4 text-slate-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
+                    </svg>
+
+
+                    Share
+                </button>
+                <div x-show="shareOpen" @click.away="shareOpen=false"
+                    class="absolute right-0 z-10 mt-2 w-72 rounded-md border border-slate-200 bg-white p-3 shadow-lg"
+                    x-transition>
+                    <label class="block text-xs text-slate-500 mb-1">Shareable URL</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" :value="shareUrl" readonly
+                            class="w-full rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700">
+                        <button @click="copyShare" type="button"
+                            class="rounded-md border border-slate-300 p-1.5 hover:bg-slate-50">
+                            <template x-if="!shareCopied">
+                                <!-- Heroicons outline: clipboard-document -->
+                                <svg class="w-4 h-4 text-slate-700" xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 7.5h6M8.25 3.75h7.5A2.25 2.25 0 0 1 18 6v12a2.25 2.25 0 0 1-2.25 2.25H8.25A2.25 2.25 0 0 1 6 18V6A2.25 2.25 0 0 1 8.25 3.75z" />
+                                </svg>
+                            </template>
+                            <template x-if="shareCopied">
+                                <!-- Heroicons outline: check -->
+                                <svg class="w-4 h-4 text-green-600" xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </template>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-4 text-right text-xs text-slate-500">
-            Times in UTC. Prices in €/MWh.
+        <div class="my-8">
+            <div id="explorerChart" class="relative w-full h-64 sm:h-80 lg:h-96"></div>
         </div>
     </main>
 
     <script>
-        function buildOptsAll(getWidth, seriesDefs) {
-            return {
-                title: null,
-                width: getWidth(),
-                height: 520,
-                legend: { show: false },
-                series: [
-                    {},
-                    ...seriesDefs.map(s => ({
-                        label: s.label,
-                        stroke: s.color,
-                        width: 1.5,
-                        paths: uPlot.paths.stepped({ align: -1 })
-                    }))
-                ],
-                axes: [
-                    {
-                        label: "Time (UTC)",
-                        values: (u, vals) => {
-                            let lastDay = null;
-                            return vals.map(v => {
-                                const d = new Date(v * 1000);
-                                const day = d.getUTCDate();
-                                const isMidnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0;
-                                let out;
-                                if (lastDay === null || day !== lastDay || isMidnight) {
-                                    out = d.toLocaleDateString('en-GB', { month: 'short', day: '2-digit', timeZone: 'UTC' });
-                                } else {
-                                    out = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
-                                }
-                                lastDay = day;
-                                return out;
-                            });
-                        },
-                        grid: { show: true }
-                    },
-                    { label: "Price (€/MWh)", grid: { show: true } }
-                ],
-                scales: { x: { time: true } },
-                cursor: { show: true, x: true, y: true, points: { show: false } },
-                hooks: {
-                    init: [
-                        (u) => {
-                            const status = document.getElementById('explorerStatus');
-                            if (status) status.remove();
-
-                            const tt = document.createElement('div');
-                            tt.id = 'uplot-tooltip-all';
-                            tt.className = 'absolute z-10 rounded-md bg-slate-900/90 text-white text-xs px-2 py-1 shadow-lg pointer-events-none hidden';
-                            tt.style.transform = 'translate(12px, -24px)';
-                            u.over.appendChild(tt);
-                            u._ttAll = tt;
-                            u.over.addEventListener('mouseleave', () => tt.classList.add('hidden'));
-                        }
-                    ],
-                    setCursor: [
-                        (u) => {
-                            const tt = u._ttAll;
-                            if (!tt) return;
-                            const { left, top, idx } = u.cursor;
-                            if (left == null || top == null || idx == null || left < 0 || top < 0 || left > u.bbox.width || top > u.bbox.height) {
-                                tt.classList.add('hidden');
-                                return;
-                            }
-
-                            const xArr = u.data[0];
-                            const i = Math.max(0, Math.min(idx, xArr.length - 1));
-                            const xVal = xArr[i];
-                            const d = new Date(xVal * 1000);
-                            const timeStr = d.toLocaleString('en-GB', {
-                                timeZone: 'UTC',
-                                year: 'numeric',
-                                month: 'short',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: false
-                            });
-
-                            let html = `${timeStr} UTC`;
-                            for (let s = 1; s < u.data.length; s++) {
-                                const val = u.data[s][i];
-                                const label = seriesDefs[s - 1]?.label || `S${s}`;
-                                const color = seriesDefs[s - 1]?.color || '#999';
-                                const valStr = val == null ? '—' : `${val.toFixed(2)} €/MWh`;
-                                html += `<br><span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:2px;margin-right:6px"></span>${label}: <span class="font-semibold">${valStr}</span>`;
-                            }
-
-                            tt.innerHTML = html;
-                            tt.style.left = `${left}px`;
-                            tt.style.top = `${top}px`;
-                            tt.classList.remove('hidden');
-                        }
-                    ]
-                }
-            };
-        }
-
-        async function fetchAllYearsForZone(zoneId, startYear, endYear) {
-            const results = [];
-            for (let y = startYear; y <= endYear; y++) {
-                const url = `/electricity/${zoneId}/${y}/index.json`;
-                try {
-                    const res = await fetch(url);
-                    if (!res.ok) continue;
-                    const arr = await res.json();
-                    for (const item of arr) {
-                        results.push({
-                            ts: Math.floor(new Date(item.timestamp).getTime() / 1000),
-                            val: parseFloat(item.value)
-                        });
-                    }
-                } catch (_) {
-                    // skip missing or bad year files
-                }
-            }
-
-            // sort & dedupe by ts (last wins)
-            results.sort((a, b) => a.ts - b.ts);
-            const seen = new Map();
-            for (const r of results) seen.set(r.ts, r.val);
-            return seen; // Map<ts, val>
-        }
-
-        async function renderExplorer() {
-            const el = document.getElementById('explorerChart');
-            const getWidth = () => el.offsetWidth;
-
-            const startYear = 2014;
-            const endYear = new Date().getUTCFullYear();
-
-            const zones = [
-                { id: 'SE1', color: '#059669' },
-                { id: 'SE2', color: '#2563eb' },
-                { id: 'SE3', color: '#f59e0b' },
-                { id: 'SE4', color: '#dc2626' },
+        function explorer() {
+            const ZONES = [
+                { code: 'SE1', flag: '🇸🇪' }, { code: 'SE2', flag: '🇸🇪' }, { code: 'SE3', flag: '🇸🇪' }, { code: 'SE4', flag: '🇸🇪' },
+                { code: 'DK1', flag: '🇩🇰' }, { code: 'DK2', flag: '🇩🇰' },
+                { code: 'NO1', flag: '🇳🇴' }, { code: 'NO2', flag: '🇳🇴' }, { code: 'NO3', flag: '🇳🇴' }, { code: 'NO4', flag: '🇳🇴' }, { code: 'NO5', flag: '🇳🇴' },
+                { code: 'FI', flag: '🇫🇮' },
+                { code: 'DE_LU', flag: '🇩🇪' },
+                { code: 'AT', flag: '🇦🇹' }, { code: 'FR', flag: '🇫🇷' }, { code: 'BE', flag: '🇧🇪' }, { code: 'NL', flag: '🇳🇱' }, { code: 'PL', flag: '🇵🇱' },
+                { code: 'EE', flag: '🇪🇪' }, { code: 'LT', flag: '🇱🇹' }, { code: 'LV', flag: '🇱🇻' },
+                { code: 'IT-NORTH', flag: '🇮🇹' }, { code: 'IT-CENTRE_NORTH', flag: '🇮🇹' }, { code: 'IT-CENTRE_SOUTH', flag: '🇮🇹' }, { code: 'IT-SOUTH', flag: '🇮🇹' }, { code: 'IT-SICILY', flag: '🇮🇹' }, { code: 'IT-SARDINIA', flag: '🇮🇹' }, { code: 'IT-CALABRIA', flag: '🇮🇹' },
+                { code: 'CH', flag: '🇨🇭' }, { code: 'ES', flag: '🇪🇸' }, { code: 'PT', flag: '🇵🇹' },
+                { code: 'SK', flag: '🇸🇰' }, { code: 'SI', flag: '🇸🇮' }, { code: 'CZ', flag: '🇨🇿' }, { code: 'HU', flag: '🇭🇺' }, { code: 'HR', flag: '🇭🇷' },
+                { code: 'RO', flag: '🇷🇴' }, { code: 'RS', flag: '🇷🇸' }, { code: 'BG', flag: '🇧🇬' }, { code: 'GR', flag: '🇬🇷' }
             ];
 
-            try {
-                console.time('renderExplorer');
-                // fetch each zone sequentially to avoid too many concurrent requests
-                const zoneMaps = [];
-                for (const z of zones) {
-                    const map = await fetchAllYearsForZone(z.id, startYear, endYear);
-                    zoneMaps.push(map);
+            return {
+                allZones: ZONES,
+                selectedZones: [],
+                fromDate: '',
+                toDate: '',
+                chart: null,
+                _resizeObs: null,
+                shareOpen: false,
+                shareCopied: false,
+                shareUrl: '',
+                init() {
+                    const params = new URLSearchParams(location.search);
+                    const parseCsv = (v) => (v ? v.split(',').map(s => s.trim()).filter(Boolean) : []);
+
+                    // Default last 30 days (UTC)
+                    const todayUtc = new Date();
+                    const toIso = d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString().slice(0, 10);
+                    const end = new Date(Date.UTC(todayUtc.getUTCFullYear(), todayUtc.getUTCMonth(), todayUtc.getUTCDate()));
+                    const start = new Date(end);
+                    start.setUTCDate(start.getUTCDate() - 30);
+
+                    const urlFrom = params.get('from');
+                    const urlTo = params.get('to');
+                    const urlZones = parseCsv(params.get('zones'));
+
+                    this.fromDate = urlFrom || localStorage.getItem('explorer.from') || toIso(start);
+                    this.toDate = urlTo || localStorage.getItem('explorer.to') || toIso(end);
+
+                    if (urlZones.length) {
+                        this.selectedZones = urlZones;
+                    } else {
+                        try {
+                            const saved = JSON.parse(localStorage.getItem('explorer.zones') || '[]');
+                            if (Array.isArray(saved) && saved.length) this.selectedZones = saved;
+                        } catch { }
+                    }
+                    if (this.selectedZones.length === 0) this.selectedZones = ['SE1', 'SE2', 'SE3', 'SE4'];
+
+                    this.syncUrl();
+                    // Ensure the multi-select visually reflects the restored selections
+                    this.$nextTick(() => this.syncSelectUI());
+                    this.render();
+                },
+                zoneByCode(code) {
+                    return this.allZones.find(z => z.code === code);
+                },
+                availableZones() {
+                    const selected = new Set(this.selectedZones);
+                    return this.allZones.filter(z => !selected.has(z.code));
+                },
+                addZone(code) {
+                    if (!this.selectedZones.includes(code)) {
+                        this.selectedZones = [...this.selectedZones, code];
+                        this.onZonesChange();
+                    }
+                },
+                removeZone(code) {
+                    this.selectedZones = this.selectedZones.filter(c => c !== code);
+                    this.onZonesChange();
+                },
+                onZonesChange() {
+                    localStorage.setItem('explorer.zones', JSON.stringify(this.selectedZones));
+                    this.syncUrl();
+                    this.render();
+                },
+                onDateChange() {
+                    localStorage.setItem('explorer.from', this.fromDate);
+                    localStorage.setItem('explorer.to', this.toDate);
+                    this.syncUrl();
+                    this.render();
+                },
+                syncSelectUI() {
+                    const sel = this.$refs.zonesSelect;
+                    if (!sel) return;
+                    const selected = new Set(this.selectedZones);
+                    for (const opt of sel.options) {
+                        opt.selected = selected.has(opt.value);
+                    }
+                },
+                syncUrl() {
+                    const params = new URLSearchParams();
+                    if (this.selectedZones.length) params.set('zones', this.selectedZones.join(','));
+                    if (this.fromDate) params.set('from', this.fromDate);
+                    if (this.toDate) params.set('to', this.toDate);
+                    const newUrl = `${location.pathname}?${params.toString()}`;
+                    history.replaceState(null, '', newUrl);
+                    this.shareUrl = (location.origin || 'https://spot.utilitarian.io') + newUrl;
+                },
+                setPrevMonth() {
+                    const today = new Date();
+                    const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+                    const start = new Date(end);
+                    start.setUTCMonth(start.getUTCMonth() - 1);
+                    const toIso = d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString().slice(0, 10);
+                    this.fromDate = toIso(start);
+                    this.toDate = toIso(end);
+                    this.onDateChange();
+                },
+                setPrevYear() {
+                    const today = new Date();
+                    const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+                    const start = new Date(end);
+                    start.setUTCFullYear(start.getUTCFullYear() - 1);
+                    const toIso = d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString().slice(0, 10);
+                    this.fromDate = toIso(start);
+                    this.toDate = toIso(end);
+                    this.onDateChange();
+                },
+                openShare() {
+                    this.syncUrl();
+                    this.shareOpen = !this.shareOpen;
+                    this.shareCopied = false;
+                },
+                async copyShare() {
+                    try {
+                        await navigator.clipboard.writeText(this.shareUrl);
+                        this.shareCopied = true;
+                        setTimeout(() => { this.shareCopied = false; }, 1500);
+                    } catch (_) { }
+                },
+                buildOpts(getWidth, getHeight, seriesDefs) {
+                    return {
+                        title: null,
+                        width: getWidth(),
+                        height: getHeight(),
+                        legend: { show: false },
+                        series: [
+                            {},
+                            ...seriesDefs.map(s => ({ label: s.label, stroke: s.color, width: 2, paths: uPlot.paths.stepped({ align: -1 }) }))
+                        ],
+                        axes: [
+                            {
+                                label: 'Time (UTC)',
+                                values: (u, vals) => {
+                                    let lastDay = null;
+                                    return vals.map(v => {
+                                        const d = new Date(v * 1000);
+                                        const day = d.getUTCDate();
+                                        const isMidnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0;
+                                        let out;
+                                        if (lastDay === null || day !== lastDay || isMidnight) {
+                                            out = d.toLocaleDateString('en-GB', { month: 'short', day: '2-digit', timeZone: 'UTC' });
+                                        } else {
+                                            out = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+                                        }
+                                        lastDay = day;
+                                        return out;
+                                    });
+                                },
+                                grid: { show: true }
+                            },
+                            { label: 'Price (€/MWh)', grid: { show: true } }
+                        ],
+                        scales: { x: { time: true } },
+                        cursor: { show: true, x: true, y: true, points: { show: false } },
+                        hooks: {
+                            init: [(u) => {
+                                const tt = document.createElement('div');
+                                tt.className = 'absolute z-10 rounded-md bg-slate-900/90 text-white text-xs px-2 py-1 shadow-lg pointer-events-none hidden';
+                                tt.style.transform = 'translate(12px, -24px)';
+                                u.over.appendChild(tt);
+                                u._tt = tt;
+                                u.over.addEventListener('mouseleave', () => tt.classList.add('hidden'));
+                                u._seriesDefs = seriesDefs;
+                            }],
+                            setCursor: [(u) => {
+                                const tt = u._tt; if (!tt) return;
+                                const { left, top, idx } = u.cursor;
+                                if (left == null || top == null || idx == null || left < 0 || top < 0 || left > u.bbox.width || top > u.bbox.height) {
+                                    tt.classList.add('hidden'); return;
+                                }
+                                const xArr = u.data[0];
+                                const i = Math.max(0, Math.min(idx, xArr.length - 1));
+                                const d = new Date(xArr[i] * 1000);
+                                const ts = d.toLocaleString('en-GB', { timeZone: 'UTC', year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+                                let html = `${ts} UTC`;
+                                for (let s = 1; s < u.data.length; s++) {
+                                    const val = u.data[s][i];
+                                    const def = u._seriesDefs[s - 1];
+                                    const label = def?.label || `S${s}`;
+                                    const color = def?.color || '#999';
+                                    const valStr = val == null ? '—' : `${val.toFixed(2)} €/MWh`;
+                                    html += `<br><span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:2px;margin-right:6px"></span>${label}: <span class="font-semibold">${valStr}</span>`;
+                                }
+                                tt.innerHTML = html; tt.style.left = `${left}px`; tt.style.top = `${top}px`; tt.classList.remove('hidden');
+                            }]
+                        }
+                    };
+                },
+                async render() {
+                    const el = document.getElementById('explorerChart');
+                    const getWidth = () => el.getBoundingClientRect().width;
+                    const getHeight = () => el.getBoundingClientRect().height;
+
+                    const toTs = (d) => Math.floor(new Date(d).getTime() / 1000);
+                    const startTs = toTs(this.fromDate + 'T00:00:00Z');
+                    const endTs = toTs(this.toDate + 'T23:59:59Z');
+
+                    try {
+                        console.time('explorerRender');
+                        // Fetch full-year data for each selected zone across the span
+                        const neededYears = new Set();
+                        const startYear = new Date(this.fromDate).getUTCFullYear();
+                        const endYear = new Date(this.toDate).getUTCFullYear();
+                        for (let y = startYear; y <= endYear; y++) neededYears.add(y);
+
+                        const fetches = [];
+                        for (const z of this.selectedZones) {
+                            for (const y of neededYears) {
+                                fetches.push(fetch(`/electricity/${z}/${y}/index.json`).then(r => r.ok ? r.json() : []));
+                            }
+                        }
+                        const results = await Promise.all(fetches);
+
+                        // Group back per-zone
+                        const zoneToItems = new Map();
+                        let idx = 0;
+                        for (const z of this.selectedZones) {
+                            const items = [];
+                            for (const y of neededYears) { items.push(...results[idx++]); }
+                            zoneToItems.set(z, items);
+                        }
+
+                        // Build union timeline filtered by range
+                        const tsSet = new Set();
+                        for (const items of zoneToItems.values()) {
+                            for (const it of items) {
+                                const ts = Math.floor(new Date(it.timestamp).getTime() / 1000);
+                                if (ts >= startTs && ts <= endTs) tsSet.add(ts);
+                            }
+                        }
+                        const xTimes = Array.from(tsSet).sort((a, b) => a - b);
+
+                        // Align series
+                        const colors = ['#059669', '#2563eb', '#f59e0b', '#dc2626', '#7c3aed', '#0ea5e9', '#16a34a'];
+                        const seriesDefs = this.selectedZones.map((z, i) => ({ label: z, color: colors[i % colors.length] }));
+                        const seriesY = this.selectedZones.map(z => {
+                            const m = new Map(zoneToItems.get(z).map(it => [Math.floor(new Date(it.timestamp).getTime() / 1000), parseFloat(it.value)]));
+                            return xTimes.map(t => (m.has(t) ? m.get(t) : null));
+                        });
+
+                        if (this._resizeObs) { try { this._resizeObs.disconnect(); } catch { } }
+                        if (this.chart) this.chart.destroy();
+                        this.chart = new uPlot(this.buildOpts(getWidth, getHeight, seriesDefs), [xTimes, ...seriesY], el);
+
+                        this._resizeObs = new ResizeObserver(() => {
+                            if (this.chart) this.chart.setSize({ width: getWidth(), height: getHeight() });
+                        });
+                        this._resizeObs.observe(el);
+                        console.timeEnd('explorerRender');
+
+                        // datapoints log
+                        const perSeriesCounts = seriesY.map(a => a.reduce((acc, v) => acc + (v == null ? 0 : 1), 0));
+                        const totalPoints = perSeriesCounts.reduce((a, b) => a + b, 0);
+                        console.log('explorer datapoints:', { xLen: xTimes.length, perSeries: this.selectedZones.map((z, i) => ({ zone: z, points: perSeriesCounts[i] })), total: totalPoints });
+                    } catch (e) {
+                        el.innerHTML = '<p class="text-center text-red-600">Error loading data.</p>';
+                        console.error('explorer', e);
+                    }
                 }
-
-                // union of all timestamps
-                const tsSet = new Set();
-                for (const m of zoneMaps) for (const ts of m.keys()) tsSet.add(ts);
-                const xTimes = Array.from(tsSet).sort((a, b) => a - b);
-
-                // aligned y arrays per zone
-                const seriesY = zoneMaps.map(m => xTimes.map(t => (m.has(t) ? m.get(t) : null)));
-
-                // datapoint counts
-                const perSeriesCounts = seriesY.map(a => a.reduce((acc, v) => acc + (v == null ? 0 : 1), 0));
-                const totalPoints = perSeriesCounts.reduce((a, b) => a + b, 0);
-                console.log('renderExplorer datapoints:', {
-                    xLen: xTimes.length,
-                    perSeries: zones.map((z, i) => ({ zone: z.id, points: perSeriesCounts[i] })),
-                    total: totalPoints,
-                });
-
-                const opts = buildOptsAll(getWidth, zones.map(z => ({ label: z.id, color: z.color })));
-                const chart = new uPlot(opts, [xTimes, ...seriesY], el);
-
-                const onResize = () => chart.setSize({ width: getWidth(), height: 520 });
-                window.addEventListener('resize', onResize);
-                console.timeEnd('renderExplorer');
-            } catch (e) {
-                const status = document.getElementById('explorerStatus');
-                if (status) status.textContent = 'Error loading price data.';
-                console.error('explorer', e);
             }
         }
-
-        document.addEventListener('DOMContentLoaded', renderExplorer);
     </script>
 </body>
+
+}
 
 </html>
