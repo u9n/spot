@@ -83,6 +83,11 @@
                 <button @click="setPrevYear" type="button"
                     class="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">Last
                     year</button>
+                <template x-for="y in quickYears" :key="y">
+                    <button @click="setYear(y)" type="button"
+                        class="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                        x-text="y"></button>
+                </template>
             </div>
             <div class="flex items-center gap-2 relative">
                 <button @click="downloadCSV" type="button"
@@ -217,6 +222,7 @@
                 currencyCode: 'EUR',
                 currencyRate: 1,
                 unit: 'MWh',
+                quickYears: [],
                 _exportX: [],
                 _exportSeriesY: [],
                 _exportLabels: [],
@@ -259,6 +265,10 @@
                     this.syncUrl();
                     // Ensure the multi-select visually reflects the restored selections
                     this.$nextTick(() => this.syncSelectUI());
+                    // build quick year buttons for previous 5 full years
+                    const now = new Date();
+                    const curY = now.getUTCFullYear();
+                    this.quickYears = [curY - 1, curY - 2, curY - 3, curY - 4, curY - 5];
                     this.render();
                 },
                 zoneByCode(code) {
@@ -326,6 +336,14 @@
                     this.unit = 'MWh';
                     this.onSettingsChange();
                 },
+                setYear(y) {
+                    const start = new Date(Date.UTC(y, 0, 1));
+                    const end = new Date(Date.UTC(y, 11, 31));
+                    const toIso = d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString().slice(0, 10);
+                    this.fromDate = toIso(start);
+                    this.toDate = toIso(end);
+                    this.onDateChange();
+                },
                 getYAxisLabel() {
                     return `${this.currencyCode}/${this.unit}`;
                 },
@@ -375,17 +393,22 @@
                             {
                                 label: 'Time (UTC)',
                                 values: (u, vals) => {
+                                    let lastYear = null;
                                     let lastDay = null;
                                     return vals.map(v => {
                                         const d = new Date(v * 1000);
+                                        const year = d.getUTCFullYear();
                                         const day = d.getUTCDate();
                                         const isMidnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0;
                                         let out;
-                                        if (lastDay === null || day !== lastDay || isMidnight) {
+                                        if (lastYear === null || year !== lastYear) {
+                                            out = String(year);
+                                        } else if (lastDay === null || day !== lastDay || isMidnight) {
                                             out = d.toLocaleDateString('en-GB', { month: 'short', day: '2-digit', timeZone: 'UTC' });
                                         } else {
                                             out = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
                                         }
+                                        lastYear = year;
                                         lastDay = day;
                                         return out;
                                     });
@@ -440,7 +463,7 @@
                     const endTs = toTs(this.toDate + 'T23:59:59Z');
 
                     try {
-                        console.time('explorerRender');
+                        const t0 = performance.now();
                         // Fetch full-year data for each selected zone across the span
                         const neededYears = new Set();
                         const startYear = new Date(this.fromDate).getUTCFullYear();
@@ -496,7 +519,7 @@
                             if (this.chart) this.chart.setSize({ width: getWidth(), height: getHeight() });
                         });
                         this._resizeObs.observe(el);
-                        console.timeEnd('explorerRender');
+                        console.log('explorerRender:', (performance.now() - t0).toFixed(2), 'ms');
 
                         // datapoints log
                         const perSeriesCounts = seriesY.map(a => a.reduce((acc, v) => acc + (v == null ? 0 : 1), 0));
@@ -536,8 +559,48 @@
             }
         }
     </script>
-</body>
+    <footer class="bg-slate-50 mt-16">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="py-16 text-center text-sm text-slate-500">
 
-}
+                <p>
+                    Utilitarian Spot is a free, fast and reliable energy price backend for load control and demand
+                    response automation. <br>
+                    It provides day-ahead and historical energy price data, with simple charts for visualization when
+                    needed.
+                </p>
+                <br>
+                <p class="my-2">Prices are fetched from the EU ENTSO-E Transparency Platform.</p>
+                <p class="my-2">Time is in UTC and prices are in €/MWh.</p>
+
+            </div>
+            <div
+                class="flex flex-col items-center border-t border-slate-400/10 py-10 sm:flex-row-reverse sm:justify-between">
+                <div class="flex gap-x-6">
+                    <a class="group" aria-label="Utilitarian on GitHub" href="https://github.com/u9n/">
+                        <svg aria-hidden="true" class="h-6 w-6 fill-slate-500 group-hover:fill-slate-700">
+                            <path
+                                d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z">
+                            </path>
+                        </svg>
+                    </a>
+                </div>
+                <p class="mt-6 text-sm text-slate-500 sm:mt-0">
+                    Free service from <a class="text-slate-700 hover:text-slate-900"
+                        href="https://utilitarian.io">utilitarian.io</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Corner logo linking home -->
+    <a href="/" aria-label="Utilitarian Spot"
+        class="fixed bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-slate-900 text-white px-3 py-2 text-xs shadow-lg hover:bg-slate-700">
+        <img src="https://utilitarian-io-prod-static.s3.amazonaws.com/images/utilitarian_logo_on_dark.svg"
+            alt="Utilitarian Spot" class="h-4 w-4" />
+        Utilitarian Spot
+    </a>
+
+</body>
 
 </html>
