@@ -84,7 +84,17 @@
                     class="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">Last
                     year</button>
             </div>
-            <div class="relative inline-block">
+            <div class="flex items-center gap-2 relative">
+                <button @click="downloadCSV" type="button"
+                    class="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                    <!-- Heroicons outline: arrow-down-tray -->
+                    <svg class="w-4 h-4 text-slate-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12 12 16.5m0 0L16.5 12M12 16.5V3" />
+                    </svg>
+                    Download CSV
+                </button>
                 <button @click="openShare" type="button"
                     class="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
                     <!-- Heroicons outline: rectangle-stack -->
@@ -127,6 +137,51 @@
             </div>
         </div>
 
+        <!-- Collapsible pricing settings -->
+        <div class="mt-3">
+            <button type="button" @click="settingsOpen = !settingsOpen"
+                class="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                <svg class="w-4 h-4 text-slate-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M8.25 3v8.25M8.25 12.75V21M15.75 3v3.75M15.75 9.75V21M12 3v12M12 16.5V21" />
+                </svg>
+                Pricing settings
+            </button>
+            <div x-show="settingsOpen" x-transition class="mt-2 rounded-md border border-slate-200 p-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block mb-1 text-sm text-slate-600">Currency code</label>
+                        <input type="text" x-model="currencyCode" @change="onSettingsChange" placeholder="EUR"
+                            maxlength="6"
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm uppercase" />
+                    </div>
+                    <div>
+                        <label class="block mb-1 text-sm text-slate-600">1 € equals</label>
+                        <input type="number" step="0.0001" min="0" x-model.number="currencyRate"
+                            @change="onSettingsChange"
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block mb-1 text-sm text-slate-600">Energy unit</label>
+                        <select x-model="unit" @change="onSettingsChange"
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            <option value="MWh">MWh</option>
+                            <option value="kWh">kWh</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="button" @click="clearSettings"
+                        class="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">Clear
+                        settings</button>
+                </div>
+                <p class="mt-2 text-xs text-slate-500">Axis and values use <span x-text="currencyCode"></span>/<span
+                        x-text="unit"></span>. Conversion factor: <span x-text="currencyRate"></span> per € and 1/1000
+                    for kWh.</p>
+            </div>
+        </div>
+
         <div class="my-8">
             <div id="explorerChart" class="relative w-full h-64 sm:h-80 lg:h-96"></div>
         </div>
@@ -158,6 +213,13 @@
                 shareOpen: false,
                 shareCopied: false,
                 shareUrl: '',
+                settingsOpen: false,
+                currencyCode: 'EUR',
+                currencyRate: 1,
+                unit: 'MWh',
+                _exportX: [],
+                _exportSeriesY: [],
+                _exportLabels: [],
                 init() {
                     const params = new URLSearchParams(location.search);
                     const parseCsv = (v) => (v ? v.split(',').map(s => s.trim()).filter(Boolean) : []);
@@ -185,6 +247,14 @@
                         } catch { }
                     }
                     if (this.selectedZones.length === 0) this.selectedZones = ['SE1', 'SE2', 'SE3', 'SE4'];
+
+                    // parse settings from URL/localStorage
+                    const uCur = (params.get('cur') || localStorage.getItem('explorer.cur') || 'EUR').toUpperCase();
+                    const uRate = parseFloat(params.get('rate') || localStorage.getItem('explorer.rate') || '1') || 1;
+                    const uUnit = (params.get('unit') || localStorage.getItem('explorer.unit') || 'MWh');
+                    this.currencyCode = uCur;
+                    this.currencyRate = uRate;
+                    this.unit = (uUnit === 'kWh' ? 'kWh' : 'MWh');
 
                     this.syncUrl();
                     // Ensure the multi-select visually reflects the restored selections
@@ -232,9 +302,32 @@
                     if (this.selectedZones.length) params.set('zones', this.selectedZones.join(','));
                     if (this.fromDate) params.set('from', this.fromDate);
                     if (this.toDate) params.set('to', this.toDate);
+                    if (this.currencyCode) params.set('cur', this.currencyCode.toUpperCase());
+                    if (this.currencyRate != null) params.set('rate', String(this.currencyRate));
+                    if (this.unit) params.set('unit', this.unit);
                     const newUrl = `${location.pathname}?${params.toString()}`;
                     history.replaceState(null, '', newUrl);
                     this.shareUrl = (location.origin || 'https://spot.utilitarian.io') + newUrl;
+                },
+                onSettingsChange() {
+                    // normalize
+                    this.currencyCode = (this.currencyCode || 'EUR').toUpperCase();
+                    if (!isFinite(this.currencyRate) || this.currencyRate <= 0) this.currencyRate = 1;
+                    if (this.unit !== 'kWh') this.unit = 'MWh';
+                    localStorage.setItem('explorer.cur', this.currencyCode);
+                    localStorage.setItem('explorer.rate', String(this.currencyRate));
+                    localStorage.setItem('explorer.unit', this.unit);
+                    this.syncUrl();
+                    this.render();
+                },
+                clearSettings() {
+                    this.currencyCode = 'EUR';
+                    this.currencyRate = 1;
+                    this.unit = 'MWh';
+                    this.onSettingsChange();
+                },
+                getYAxisLabel() {
+                    return `${this.currencyCode}/${this.unit}`;
                 },
                 setPrevMonth() {
                     const today = new Date();
@@ -299,7 +392,7 @@
                                 },
                                 grid: { show: true }
                             },
-                            { label: 'Price (€/MWh)', grid: { show: true } }
+                            { label: this.getYAxisLabel(), grid: { show: true } }
                         ],
                         scales: { x: { time: true } },
                         cursor: { show: true, x: true, y: true, points: { show: false } },
@@ -329,7 +422,7 @@
                                     const def = u._seriesDefs[s - 1];
                                     const label = def?.label || `S${s}`;
                                     const color = def?.color || '#999';
-                                    const valStr = val == null ? '—' : `${val.toFixed(2)} €/MWh`;
+                                    const valStr = val == null ? '—' : `${val.toFixed(2)} ${this.getYAxisLabel()}`;
                                     html += `<br><span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:2px;margin-right:6px"></span>${label}: <span class="font-semibold">${valStr}</span>`;
                                 }
                                 tt.innerHTML = html; tt.style.left = `${left}px`; tt.style.top = `${top}px`; tt.classList.remove('hidden');
@@ -384,10 +477,16 @@
                         // Align series
                         const colors = ['#059669', '#2563eb', '#f59e0b', '#dc2626', '#7c3aed', '#0ea5e9', '#16a34a'];
                         const seriesDefs = this.selectedZones.map((z, i) => ({ label: z, color: colors[i % colors.length] }));
+                        const factor = (this.currencyRate || 1) * (this.unit === 'kWh' ? 1 / 1000 : 1);
                         const seriesY = this.selectedZones.map(z => {
-                            const m = new Map(zoneToItems.get(z).map(it => [Math.floor(new Date(it.timestamp).getTime() / 1000), parseFloat(it.value)]));
+                            const m = new Map(zoneToItems.get(z).map(it => [Math.floor(new Date(it.timestamp).getTime() / 1000), parseFloat(it.value) * factor]));
                             return xTimes.map(t => (m.has(t) ? m.get(t) : null));
                         });
+
+                        // cache for CSV export
+                        this._exportX = xTimes;
+                        this._exportSeriesY = seriesY;
+                        this._exportLabels = this.selectedZones.slice();
 
                         if (this._resizeObs) { try { this._resizeObs.disconnect(); } catch { } }
                         if (this.chart) this.chart.destroy();
@@ -407,6 +506,32 @@
                         el.innerHTML = '<p class="text-center text-red-600">Error loading data.</p>';
                         console.error('explorer', e);
                     }
+                }
+                ,
+                downloadCSV() {
+                    if (!this._exportX.length) return;
+                    const headers = ['timestamp', ...this._exportLabels.map(z => `${z}(${this.currencyCode}/${this.unit})`)];
+                    const rows = [];
+                    for (let i = 0; i < this._exportX.length; i++) {
+                        const ts = new Date(this._exportX[i] * 1000).toISOString();
+                        const vals = this._exportSeriesY.map(col => {
+                            const v = col[i];
+                            return v == null ? '' : v.toFixed(2);
+                        });
+                        rows.push([ts, ...vals].join(','));
+                    }
+                    const csv = [headers.join(','), ...rows].join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const zonesPart = this._exportLabels.join('-');
+                    const fileName = `prices_${this.fromDate}_to_${this.toDate}_${zonesPart}.csv`;
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
                 }
             }
         }
