@@ -17,6 +17,13 @@
     <meta property="og:image"
         content="https://utilitarian-io-prod-static.s3.amazonaws.com/images/utilitarian_logo_on_dark.svg" />
 
+    <link rel="icon" type="image/png" href="/assets/favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="shortcut icon" href="/assets/favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Spot" />
+    <link rel="manifest" href="/assets/favicon/site.webmanifest" />
+
     <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -76,8 +83,8 @@
             </h2>
 
             <div class="my-4 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
-                <label class="text-sm text-slate-700">Country</label>
-                <select x-model="country" @change="onCountryChange"
+                <label class="text-sm text-slate-700" for="country-select">Country</label>
+                <select id="country-select" x-model="country" @change="onCountryChange"
                     class="rounded-md border border-slate-300 px-3 py-2 text-sm min-w-0 w-full sm:w-auto touch-manipulation">
                     <template x-for="c in countries" :key="c.code">
                         <option :value="c.code" x-text="c.name" :selected="c.code === country"></option>
