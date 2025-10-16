@@ -17,9 +17,15 @@
     <meta property="og:image"
         content="https://utilitarian-io-prod-static.s3.amazonaws.com/images/utilitarian_logo_on_dark.svg" />
     <link rel="canonical" href="https://spot.utilitarian.io/explorer/" />
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.iife.js"></script>
+    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css"
+        onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css" />
+    </noscript>
+    <script defer src="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.iife.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 
@@ -115,7 +121,7 @@
                 <div x-show="shareOpen" @click.away="shareOpen=false"
                     class="absolute right-0 z-10 mt-2 w-72 rounded-md border border-slate-200 bg-white p-3 shadow-lg"
                     x-transition>
-                    <label class="block text-xs text-slate-500 mb-1">Shareable URL</label>
+                    <label class="block text-xs text-slate-600 mb-1">Shareable URL</label>
                     <div class="flex items-center gap-2">
                         <input type="text" :value="shareUrl" readonly
                             class="w-full rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700">
@@ -181,7 +187,7 @@
                         class="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">Clear
                         settings</button>
                 </div>
-                <p class="mt-2 text-xs text-slate-500">Axis and values use <span x-text="currencyCode"></span>/<span
+                <p class="mt-2 text-xs text-slate-600">Axis and values use <span x-text="currencyCode"></span>/<span
                         x-text="unit"></span>. Conversion factor: <span x-text="currencyRate"></span> per € and 1/1000
                     for kWh.</p>
             </div>
@@ -192,7 +198,7 @@
             <div class="flex justify-end mb-3">
                 <button type="button" @click="toggleFullScreen()"
                     class="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" viewBox="0 0 24 24"
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600" viewBox="0 0 24 24"
                         fill="none" stroke="currentColor" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
@@ -604,7 +610,7 @@
     </script>
     <footer class="bg-slate-50 mt-16">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div class="py-16 text-center text-sm text-slate-500">
+            <div class="py-16 text-center text-sm text-slate-600">
 
                 <p>
                     Utilitarian Spot is a free, fast and reliable energy price backend for load control and demand
@@ -628,8 +634,8 @@
                         </svg>
                     </a>
                 </div>
-                <p class="mt-6 text-sm text-slate-500 sm:mt-0">
-                    Free service from <a class="text-slate-700 hover:text-slate-900"
+                <p class="mt-6 text-sm text-slate-600 sm:mt-0">
+                    Free service from <a class="text-slate-800 hover:text-slate-900 underline underline-offset-2"
                         href="https://utilitarian.io">utilitarian.io</a>
                 </p>
             </div>

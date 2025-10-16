@@ -17,16 +17,30 @@
     <meta property="og:image"
         content="https://utilitarian-io-prod-static.s3.amazonaws.com/images/utilitarian_logo_on_dark.svg" />
 
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- uPlot -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.iife.js"></script>
+    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css"
+        onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css" />
+    </noscript>
+    <script defer src="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.iife.js"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- highlight.js -->
-    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css">
-    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+    <link rel="preload"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css" as="style"
+        onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css">
+    </noscript>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
 </head>
 
 <body>
@@ -51,7 +65,7 @@
         </div>
 
         <div class="py-8 text-center">
-            <img class="mx-auto h-5 w-auto"
+            <img class="mx-auto h-5 w-auto" width="142" height="20"
                 src="https://github.com/u9n/spot/actions/workflows/get_latest_electricity_prices.yml/badge.svg"
                 alt="github action status" />
         </div>
@@ -62,7 +76,7 @@
             </h2>
 
             <div class="my-4 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
-                <label class="text-sm text-slate-600">Country</label>
+                <label class="text-sm text-slate-700">Country</label>
                 <select x-model="country" @change="onCountryChange"
                     class="rounded-md border border-slate-300 px-3 py-2 text-sm min-w-0 w-full sm:w-auto touch-manipulation">
                     <template x-for="c in countries" :key="c.code">
@@ -92,7 +106,7 @@
                 <!-- Header -->
                 <div class="bg-slate-50 px-6 py-4 border-b border-slate-200/60">
                     <h3 class="text-lg font-semibold text-slate-900">REST API Endpoints</h3>
-                    <p class="text-sm text-slate-600 mt-1">All timestamps are ISO‑8601 in UTC. Responses are JSON arrays
+                    <p class="text-sm text-slate-700 mt-1">All timestamps are ISO‑8601 in UTC. Responses are JSON arrays
                         of { timestamp, value }.</p>
                 </div>
 
@@ -104,13 +118,13 @@
                             <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
                             <h4 class="font-semibold text-slate-900">Latest Prices</h4>
                         </div>
-                        <div class="px-6 py-4 bg-slate-50">
-                            <p class="text-sm text-slate-600 mb-3">Today + tomorrow (published day‑ahead)</p>
+                        <div class="px-6 py-4 bg-white text-slate-800">
+                            <p class="text-sm text-slate-700 mb-3">Today + tomorrow (published day‑ahead)</p>
                             <pre
                                 class="text-slate-700 p-3 rounded text-sm overflow-x-auto"><code>GET /electricity/{ZONE}/latest/</code></pre>
                             <div class="mt-3">
                                 <a href="/electricity/SE1/latest/" target="_blank"
-                                    class="text-green-600 hover:text-green-800 text-sm underline">
+                                    class="text-green-700 hover:text-green-900 text-sm font-semibold underline underline-offset-2">
                                     Try: /electricity/SE1/latest/ →
                                 </a>
                             </div>
@@ -122,13 +136,13 @@
                                 <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                                 <h4 class="font-semibold text-slate-900">Daily</h4>
                             </div>
-                            <div class="px-6 py-4 bg-slate-50">
-                                <p class="text-sm text-slate-600 mb-3">Quarter‑hourly prices for a specific day</p>
+                            <div class="px-6 py-4 bg-white text-slate-800">
+                                <p class="text-sm text-slate-700 mb-3">Quarter‑hourly prices for a specific day</p>
                                 <pre
                                     class="text-slate-700 p-3 rounded text-sm overflow-x-auto"><code>GET /electricity/{ZONE}/{YYYY}/{MM}/{DD}/</code></pre>
                                 <div class="mt-3">
                                     <a href="/electricity/SE1/2025/01/15/" target="_blank"
-                                        class="text-green-600 hover:text-green-800 text-sm underline">
+                                        class="text-green-700 hover:text-green-900 text-sm font-semibold underline underline-offset-2">
                                         Try: /electricity/SE1/2025/01/15/ →
                                     </a>
                                 </div>
@@ -141,13 +155,13 @@
                                 <div class="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
                                 <h4 class="font-semibold text-slate-900">Monthly</h4>
                             </div>
-                            <div class="px-6 py-4 bg-slate-50">
-                                <p class="text-sm text-slate-600 mb-3">All daily values for a month</p>
+                            <div class="px-6 py-4 bg-white text-slate-800">
+                                <p class="text-sm text-slate-700 mb-3">All daily values for a month</p>
                                 <pre
                                     class="text-slate-700 p-3 rounded text-sm overflow-x-auto"><code>GET /electricity/{ZONE}/{YYYY}/{MM}/</code></pre>
                                 <div class="mt-3">
                                     <a href="/electricity/SE1/2025/01/" target="_blank"
-                                        class="text-green-600 hover:text-green-800 text-sm underline">
+                                        class="text-green-700 hover:text-green-900 text-sm font-semibold underline underline-offset-2">
                                         Try: /electricity/SE1/2025/01/ →
                                     </a>
                                 </div>
@@ -160,13 +174,13 @@
                                 <div class="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
                                 <h4 class="font-semibold text-slate-900">Yearly</h4>
                             </div>
-                            <div class="px-6 py-4 bg-slate-50">
-                                <p class="text-sm text-slate-600 mb-3">All daily values for a year</p>
+                            <div class="px-6 py-4 bg-white text-slate-800">
+                                <p class="text-sm text-slate-700 mb-3">All daily values for a year</p>
                                 <pre
                                     class="text-slate-700 p-3 rounded text-sm overflow-x-auto"><code>GET /electricity/{ZONE}/{YYYY}/</code></pre>
                                 <div class="mt-3">
                                     <a href="/electricity/SE1/2025/" target="_blank"
-                                        class="text-green-600 hover:text-green-800 text-sm underline">
+                                        class="text-green-700 hover:text-green-900 text-sm font-semibold underline underline-offset-2">
                                         Try: /electricity/SE1/2025/ →
                                     </a>
                                 </div>
@@ -222,10 +236,10 @@ may_3rd = httpx.get(
 ]</code></pre>
                         <div class="mt-4 p-4 bg-slate-50 rounded-lg">
                             <h5 class="font-medium text-slate-900 mb-2">How Price Data Works</h5>
-                            <p class="text-sm text-slate-600 mb-2">Each price point is valid from its timestamp until
+                            <p class="text-sm text-slate-700 mb-2">Each price point is valid from its timestamp until
                                 the next point is reached. We don't provide time spans or intervals to reduce JSON size
                                 and improve performance.</p>
-                            <p class="text-sm text-slate-600">Values are in €/MWh. Some markets provide hourly values;
+                            <p class="text-sm text-slate-700">Values are in €/MWh. Some markets provide hourly values;
                                 others provide 15‑minute values.</p>
                         </div>
                     </div>
@@ -236,7 +250,7 @@ may_3rd = httpx.get(
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                             <div>
                                 <h5 class="font-medium text-slate-700 mb-2">Nordics</h5>
-                                <div class="space-y-1 text-slate-600">
+                                <div class="space-y-1 text-slate-700">
                                     <div>🇸🇪 <strong>Sweden:</strong> SE1, SE2, SE3, SE4</div>
                                     <div>🇩🇰 <strong>Denmark:</strong> DK1, DK2</div>
                                     <div>🇳🇴 <strong>Norway:</strong> NO1, NO2, NO3, NO4, NO5</div>
@@ -245,7 +259,7 @@ may_3rd = httpx.get(
                             </div>
                             <div>
                                 <h5 class="font-medium text-slate-700 mb-2">Central Europe</h5>
-                                <div class="space-y-1 text-slate-600">
+                                <div class="space-y-1 text-slate-700">
                                     <div>🇩🇪 <strong>Germany:</strong> DE_LU</div>
                                     <div>🇦🇹 <strong>Austria:</strong> AT</div>
                                     <div>🇫🇷 <strong>France:</strong> FR</div>
@@ -256,7 +270,7 @@ may_3rd = httpx.get(
                             </div>
                             <div>
                                 <h5 class="font-medium text-slate-700 mb-2">Eastern & Southern</h5>
-                                <div class="space-y-1 text-slate-600">
+                                <div class="space-y-1 text-slate-700">
                                     <div>🇪🇪 <strong>Estonia:</strong> EE</div>
                                     <div>🇱🇹 <strong>Lithuania:</strong> LT</div>
                                     <div>🇱🇻 <strong>Latvia:</strong> LV</div>
@@ -285,7 +299,7 @@ may_3rd = httpx.get(
                                 </div>
                                 <div>
                                     <h5 class="font-medium text-slate-900">CORS Enabled</h5>
-                                    <p class="text-sm text-slate-600">Call endpoints directly from browsers</p>
+                                    <p class="text-sm text-slate-700">Call endpoints directly from browsers</p>
                                 </div>
                             </div>
                             <div class="flex items-start">
@@ -299,7 +313,7 @@ may_3rd = httpx.get(
                                 </div>
                                 <div>
                                     <h5 class="font-medium text-slate-900">Static & Cacheable</h5>
-                                    <p class="text-sm text-slate-600">Use If-Modified-Since headers</p>
+                                    <p class="text-sm text-slate-700">Use If-Modified-Since headers</p>
                                 </div>
                             </div>
                             <div class="flex items-start">
@@ -313,7 +327,7 @@ may_3rd = httpx.get(
                                 </div>
                                 <div>
                                     <h5 class="font-medium text-slate-900">ENTSO-E Data</h5>
-                                    <p class="text-sm text-slate-600">UTC time, €/MWh currency</p>
+                                    <p class="text-sm text-slate-700">UTC time, €/MWh currency</p>
                                 </div>
                             </div>
                         </div>
@@ -321,7 +335,13 @@ may_3rd = httpx.get(
                 </div>
             </div>
 
-            <script>hljs.highlightAll();</script>
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    if (window.hljs?.highlightAll) {
+                        window.hljs.highlightAll();
+                    }
+                });
+            </script>
 
 
 
@@ -635,7 +655,7 @@ may_3rd = httpx.get(
 
     <footer class="bg-slate-50 mt-16">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div class="py-16 text-center text-sm text-slate-500">
+            <div class="py-16 text-center text-sm text-slate-600">
 
                 <p>
                     Utilitarian Spot is a free, fast and reliable energy price backend for load control and demand
@@ -659,8 +679,8 @@ may_3rd = httpx.get(
                         </svg>
                     </a>
                 </div>
-                <p class="mt-6 text-sm text-slate-500 sm:mt-0">
-                    Free service from <a class="text-slate-700 hover:text-slate-900"
+                <p class="mt-6 text-sm text-slate-600 sm:mt-0">
+                    Free service from <a class="text-slate-800 hover:text-slate-900 underline underline-offset-2"
                         href="https://utilitarian.io">utilitarian.io</a>
                 </p>
             </div>
