@@ -187,8 +187,22 @@
             </div>
         </div>
 
-        <div class="my-8">
-            <div id="explorerChart" class="relative w-full h-64 sm:h-80 lg:h-96"></div>
+        <div class="my-8" :class="chartFullScreen ? 'fixed inset-0 z-50 bg-white px-4 py-6 sm:px-8 sm:py-6 overflow-auto' : ''"
+            @keydown.window.escape="chartFullScreen && toggleFullScreen(false)">
+            <div class="flex justify-end mb-3">
+                <button type="button" @click="toggleFullScreen()"
+                    class="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                    </svg>
+                    <span x-text="chartFullScreen ? 'Exit full screen' : 'Full screen'"></span>
+                </button>
+            </div>
+            <div id="explorerChart"
+                class="relative w-full h-64 sm:h-80 lg:h-96"
+                :style="chartFullScreen ? 'height: calc(100vh - 6rem); max-height: none;' : ''"></div>
         </div>
     </main>
 
@@ -226,9 +240,12 @@
                 _exportX: [],
                 _exportSeriesY: [],
                 _exportLabels: [],
+                chartFullScreen: false,
+                _cleanupFullScreen: null,
                 init() {
                     const params = new URLSearchParams(location.search);
                     const parseCsv = (v) => (v ? v.split(',').map(s => s.trim()).filter(Boolean) : []);
+                    document.body.classList.remove('overflow-hidden');
 
                     // Default last 30 days (UTC)
                     const todayUtc = new Date();
@@ -270,6 +287,9 @@
                     const curY = now.getUTCFullYear();
                     this.quickYears = [curY - 1, curY - 2, curY - 3, curY - 4, curY - 5];
                     this.render();
+                    this._cleanupFullScreen = () => document.body.classList.remove('overflow-hidden');
+                    window.addEventListener('beforeunload', this._cleanupFullScreen);
+                    window.addEventListener('pagehide', this._cleanupFullScreen);
                 },
                 zoneByCode(code) {
                     return this.allZones.find(z => z.code === code);
@@ -501,9 +521,18 @@
                         const colors = ['#059669', '#2563eb', '#f59e0b', '#dc2626', '#7c3aed', '#0ea5e9', '#16a34a'];
                         const seriesDefs = this.selectedZones.map((z, i) => ({ label: z, color: colors[i % colors.length] }));
                         const factor = (this.currencyRate || 1) * (this.unit === 'kWh' ? 1 / 1000 : 1);
-                        const seriesY = this.selectedZones.map(z => {
+                        const rawSeriesY = this.selectedZones.map(z => {
                             const m = new Map(zoneToItems.get(z).map(it => [Math.floor(new Date(it.timestamp).getTime() / 1000), parseFloat(String(it.value).replace(',', '.')) * factor]));
                             return xTimes.map(t => (m.has(t) ? m.get(t) : null));
+                        });
+
+                        const seriesY = rawSeriesY.map(series => {
+                            let last = null;
+                            return series.map(val => {
+                                if (val == null) return last;
+                                last = val;
+                                return val;
+                            });
                         });
 
                         // cache for CSV export
@@ -529,8 +558,22 @@
                         el.innerHTML = '<p class="text-center text-red-600">Error loading data.</p>';
                         console.error('explorer', e);
                     }
-                }
-                ,
+                },
+                toggleFullScreen(force) {
+                    const next = typeof force === 'boolean' ? force : !this.chartFullScreen;
+                    if (this.chartFullScreen === next) return;
+                    this.chartFullScreen = next;
+                    document.body.classList.toggle('overflow-hidden', next);
+                    this.$nextTick(() => {
+                        if (this.chart) {
+                            const el = document.getElementById('explorerChart');
+                            if (el) {
+                                const rect = el.getBoundingClientRect();
+                                this.chart.setSize({ width: rect.width, height: rect.height });
+                            }
+                        }
+                    });
+                },
                 downloadCSV() {
                     if (!this._exportX.length) return;
                     const headers = ['timestamp', ...this._exportLabels.map(z => `${z}(${this.currencyCode}/${this.unit})`)];
