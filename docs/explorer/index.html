@@ -502,7 +502,7 @@
                         const seriesDefs = this.selectedZones.map((z, i) => ({ label: z, color: colors[i % colors.length] }));
                         const factor = (this.currencyRate || 1) * (this.unit === 'kWh' ? 1 / 1000 : 1);
                         const seriesY = this.selectedZones.map(z => {
-                            const m = new Map(zoneToItems.get(z).map(it => [Math.floor(new Date(it.timestamp).getTime() / 1000), parseFloat(it.value) * factor]));
+                            const m = new Map(zoneToItems.get(z).map(it => [Math.floor(new Date(it.timestamp).getTime() / 1000), parseFloat(String(it.value).replace(',', '.')) * factor]));
                             return xTimes.map(t => (m.has(t) ? m.get(t) : null));
                         });
 

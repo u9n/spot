@@ -1,11 +1,11 @@
 import json
-import pprint
 import time
+from collections import deque
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
+import threading
 import attr
 import httpx
-import structlog
 import xmltodict
 from typing import *
 from dateutil.parser import parse as dt_parse
@@ -15,6 +15,35 @@ from cattrs.gen import make_dict_structure_fn, override
 import structlog
 
 LOG = structlog.get_logger()
+
+
+class RateLimiter:
+    """Simple thread-safe rate limiter for synchronous contexts."""
+
+    def __init__(self, max_calls: int, period: float):
+        self.max_calls = max_calls
+        self.period = period
+        self._timestamps: deque[float] = deque()
+        self._lock = threading.Lock()
+
+    def acquire(self):
+        while True:
+            with self._lock:
+                now = time.monotonic()
+                cutoff = now - self.period
+                while self._timestamps and self._timestamps[0] <= cutoff:
+                    self._timestamps.popleft()
+
+                if len(self._timestamps) < self.max_calls:
+                    self._timestamps.append(now)
+                    return
+
+                sleep_for = self._timestamps[0] + self.period - now
+
+            if sleep_for > 0:
+                time.sleep(sleep_for)
+            else:
+                time.sleep(0)
 
 from base import (
     Price,
@@ -33,6 +62,8 @@ from get_spot_prices import (
 )
 
 LOG = structlog.get_logger()
+
+REQUEST_RATE_LIMITER = RateLimiter(max_calls=295, period=60.0)
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -59,6 +90,7 @@ class TimeSeries:
     currency: str
     energy_unit: str
     period: Period
+    classification_position: Optional[int] = None
 
     def quarterly_data(self):
         out = []
@@ -74,7 +106,8 @@ class TimeSeries:
                 while quarterly_pointer <= point.position:
                     timestamp = self.period.interval.start + timedelta(minutes=(15 * (quarterly_pointer-1)))
                     quarterly_pointer += 1
-                    price = Price(timestamp, str(point.price))
+                    value_to_use = out[-1].value if out else str(point.price)
+                    price = Price(timestamp, value_to_use)
                     out.append(price)
 
         if quarterly_pointer != 96:
@@ -82,7 +115,8 @@ class TimeSeries:
             while quarterly_pointer <= 96:
                 timestamp = self.period.interval.start + timedelta(minutes=(15 * (quarterly_pointer-1)))
                 quarterly_pointer += 1
-                price = Price(timestamp, str(point.price))
+                value_to_use = out[-1].value if out else str(point.price)
+                price = Price(timestamp, value_to_use)
                 out.append(price)
 
         return out
@@ -101,14 +135,16 @@ class TimeSeries:
                 while hourly_pointer <= point.position:
                     timestamp = self.period.interval.start + timedelta(hours=hourly_pointer - 1)
                     hourly_pointer += 1
-                    price = Price(timestamp, str(point.price))
+                    value_to_use = out[-1].value if out else str(point.price)
+                    price = Price(timestamp, value_to_use)
                     out.append(price)
         if hourly_pointer != 24:
             # We are missing some prices on the end:
             while hourly_pointer <= 24:
                 timestamp = self.period.interval.start + timedelta(hours=hourly_pointer - 1)
                 hourly_pointer += 1
-                price = Price(timestamp, str(point.price))
+                value_to_use = out[-1].value if out else str(point.price)
+                price = Price(timestamp, value_to_use)
                 out.append(price)
 
         return out
@@ -158,6 +194,9 @@ from_api_converter.register_structure_hook(
         currency=override(rename="currency_Unit.name"),
         energy_unit=override(rename="price_Measure_Unit.name"),
         period=override(rename="Period"),
+        classification_position=override(
+            rename="classificationSequence_AttributeInstanceComponent.position"
+        ),
     ),
 )
 
@@ -282,6 +321,7 @@ def get_prices(start: datetime, end: datetime, price_area: str, security_token: 
         "out_Domain": area_code,
     }
 
+    REQUEST_RATE_LIMITER.acquire()
     response = httpx.get(base_url, params=params, timeout=120)
     LOG.info(
         "Received response",
@@ -289,29 +329,97 @@ def get_prices(start: datetime, end: datetime, price_area: str, security_token: 
         length=len(response.content),
         content=response.content,
     )
-    timeseries = None
     try:
-        timeseries = xmltodict.parse(response.text)["Publication_MarketDocument"][
+        timeseries_node = xmltodict.parse(response.text)["Publication_MarketDocument"][
             "TimeSeries"
         ]
-        LOG.info("Received timeseries", timeseries=timeseries)
     except KeyError:
         LOG.error("Problem with content of response", content=response.content)
         return
 
-    prices = []
+    if isinstance(timeseries_node, dict):
+        timeseries_iterable = [timeseries_node]
+    else:
+        timeseries_iterable = timeseries_node
 
-    try:
-        for series in timeseries:
+    aggregated: dict[datetime, tuple[Price, int]] = {}
+
+    for series in timeseries_iterable:
+        try:
             ts = from_api_converter.structure(series, TimeSeries)
-            LOG.info("Handling time series", timeseries=ts)
-            resolution = ts.period.resolution
-            prices.extend(ts.data)
+        except Exception as exc:
+            LOG.error(
+                "Failed to structure time series",
+                error=transform_error(exc),
+                raw_series=series,
+            )
+            continue
 
-    except Exception as exc:
-        print(transform_error(exc))
+        classification_raw = ts.classification_position
+        try:
+            classification = int(classification_raw) if classification_raw is not None else 999
+        except (TypeError, ValueError):
+            LOG.warning(
+                "Unexpected classification value; treating as provisional",
+                value=classification_raw,
+            )
+            classification = 999
 
-    return prices
+        LOG.info(
+            "Handling time series",
+            price_area=price_area,
+            resolution=ts.period.resolution,
+            classification_position=ts.classification_position,
+        )
+        for price_point in ts.data:
+            existing = aggregated.get(price_point.timestamp)
+            if existing is None or classification < existing[1]:
+                aggregated[price_point.timestamp] = (price_point, classification)
+
+    normalized_prices = [value[0] for _, value in sorted(aggregated.items())]
+
+    return normalized_prices
+
+
+def _backfill_price_area(
+    start_dt: datetime, end_dt: datetime, price_area: str, security_token: str
+):
+    current_point = start_dt
+
+    while current_point < end_dt:
+        step_end = min(current_point + timedelta(days=14), end_dt)
+        prices = get_prices(current_point, step_end, price_area, security_token)
+        if prices is None:
+            LOG.warning(
+                "No prices returned; skipping update",
+                price_area=price_area,
+                start=current_point,
+                end=step_end,
+            )
+            current_point = step_end
+            continue
+        update_yearly(prices, price_area)
+        update_monthly(prices, price_area)
+        update_daily(prices, price_area)
+        current_point = step_end
+
+
+def _get_day_ahead_prices_for_price_area(
+    start: datetime, end: datetime, price_area: str, security_token: str
+):
+    prices = get_prices(start, end, price_area, security_token)
+    if prices is None:
+        LOG.warning(
+            "No prices returned; skipping price updates",
+            price_area=price_area,
+            start=start,
+            end=end,
+        )
+        return
+    update_yearly(prices, price_area)
+    update_monthly(prices, price_area)
+    update_daily(prices, price_area)
+    update_latest(prices, price_area)
 
 
 @click.group()
@@ -328,27 +436,40 @@ def cli():
 )
 @click.option(
     "--price-area",
-    required=True,
+    required=False,
     help="Name of price area",
     type=click.Choice(price_area_map.keys()),
 )
 @click.option(
     "--security-token", envvar="TRANSPARENCY_PLATFORM_SECURITY_TOKEN", type=str
 )
-def backfill(start: str, end: str, price_area: str, security_token: str):
+@click.option(
+    "--all-bidding-zones",
+    is_flag=True,
+    default=False,
+    help="Backfill every bidding zone defined in the script",
+)
+def backfill(
+    start: str,
+    end: str,
+    price_area: str,
+    security_token: str,
+    all_bidding_zones: bool,
+):
     start_dt = dt_parse(start)
     end_dt = dt_parse(end)
 
-    current_point = start_dt
+    if all_bidding_zones and price_area:
+        raise click.UsageError("Use --price-area or --all-bidding-zones, not both.")
+    if not all_bidding_zones and not price_area:
+        raise click.UsageError("Provide --price-area or use --all-bidding-zones.")
 
-    while current_point < end_dt:
-        step_end = current_point + timedelta(days=14)
-        prices = get_prices(current_point, step_end, price_area, security_token)
-        update_yearly(prices, price_area)
-        update_monthly(prices, price_area)
-        update_daily(prices, price_area)
-        current_point = step_end
-        time.sleep(1)
+    zones = list(price_area_map.keys()) if all_bidding_zones else [price_area]
+
+    for zone in zones:
+        LOG.info("Starting backfill", price_area=zone, start=start_dt, end=end_dt)
+        _backfill_price_area(start_dt, end_dt, zone, security_token)
+        LOG.info("Finished backfill", price_area=zone, start=start_dt, end=end_dt)
 
 
 @click.command()
@@ -366,24 +487,44 @@ def backfill(start: str, end: str, price_area: str, security_token: str):
 )
 @click.option(
     "--price-area",
-    required=True,
+    required=False,
     help="Name of price area",
     type=click.Choice(price_area_map.keys()),
 )
 @click.option(
     "--security-token", envvar="TRANSPARENCY_PLATFORM_SECURITY_TOKEN", type=str
 )
+@click.option(
+    "--all-bidding-zones",
+    is_flag=True,
+    default=False,
+    help="Fetch day-ahead prices for every bidding zone defined in the script",
+)
 def get_day_ahead_prices(
-        days_ahead: int, days_behind: int, price_area: str, security_token: str
+        days_ahead: int,
+        days_behind: int,
+        price_area: str,
+        security_token: str,
+        all_bidding_zones: bool,
 ):
+    if all_bidding_zones and price_area:
+        raise click.UsageError("Use --price-area or --all-bidding-zones, not both.")
+    if not all_bidding_zones and not price_area:
+        raise click.UsageError("Provide --price-area or use --all-bidding-zones.")
+
+    zones = list(price_area_map.keys()) if all_bidding_zones else [price_area]
     now = datetime.now(tz=timezone.utc)
     start = now - timedelta(days=days_behind)
     end = now + timedelta(days=days_ahead)
-    prices = get_prices(start, end, price_area, security_token)
-    update_yearly(prices, price_area)
-    update_monthly(prices, price_area)
-    update_daily(prices, price_area)
-    update_latest(prices, price_area)
+
+    for zone in zones:
+        LOG.info(
+            "Fetching day-ahead prices",
+            price_area=zone,
+            start=start,
+            end=end,
+        )
+        _get_day_ahead_prices_for_price_area(start, end, zone, security_token)
 
 
 cli.add_command(backfill)

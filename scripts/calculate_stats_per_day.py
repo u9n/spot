@@ -61,7 +61,7 @@ def remove_stats_files():
             if os.path.exists(path):
                 os.remove(path)
             else:
-                print("The file does not exist")
+                LOG.warning("Stats file missing during removal", path=path)
 
 
 def calculate_statistic_for_day(day: date):
@@ -92,12 +92,11 @@ if __name__ == "__main__":
     end_date = date.today()
     steps = timedelta(days=1)
     while start_date <= end_date:
-        print(f"Calculating for {start_date}")
+        LOG.info("Running statistics calculation", start_date=start_date)
         calculate_statistic_for_day(start_date)
         start_date += steps
 
     #calculate_statistic_for_day(date.fromisoformat("2021-08-01"))
 
     #remove_stats_files()
-
 
