@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#0b1120"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#g)"/>
+  <rect x="80" y="80" width="1040" height="470" rx="36" ry="36" fill="none" stroke="#10b981" stroke-width="6"/>
+  <text x="600" y="220" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" text-anchor="middle" fill="#f8fafc">Utilitarian Spot</text>
+  <text x="600" y="300" font-family="Arial, Helvetica, sans-serif" font-size="42" text-anchor="middle" fill="#cbd5f5">Day-ahead energy prices</text>
+  <g opacity="0.25" stroke="#1f2937" stroke-width="1">
+    <line x1="140" y1="340" x2="1060" y2="340"/>
+    <line x1="140" y1="380" x2="1060" y2="380"/>
+    <line x1="140" y1="420" x2="1060" y2="420"/>
+    <line x1="140" y1="460" x2="1060" y2="460"/>
+    <line x1="260" y1="320" x2="260" y2="480"/>
+    <line x1="420" y1="320" x2="420" y2="480"/>
+    <line x1="580" y1="320" x2="580" y2="480"/>
+    <line x1="740" y1="320" x2="740" y2="480"/>
+    <line x1="900" y1="320" x2="900" y2="480"/>
+  </g>
+  <path d="M140 430 L200 420 L260 360 L320 330 L380 410 L440 370 L500 450 L560 440 L620 360 L680 320 L740 360 L800 350 L860 420 L920 390 L980 440 L1040 400"
+        fill="none" stroke="#10b981" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+  <text x="600" y="520" font-family="Arial, Helvetica, sans-serif" font-size="32" text-anchor="middle" fill="#7dd3fc">spot.utilitarian.io</text>
+</svg>

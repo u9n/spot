@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1120"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#g2)"/>
+  <rect x="80" y="80" width="1040" height="470" rx="36" ry="36" fill="none" stroke="#38bdf8" stroke-width="6"/>
+  <text x="600" y="220" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" text-anchor="middle" fill="#f8fafc">Spot Explorer</text>
+  <text x="600" y="300" font-family="Arial, Helvetica, sans-serif" font-size="42" text-anchor="middle" fill="#bfdbfe">Compare EU &amp; Nordic prices</text>
+  <g opacity="0.25" stroke="#1e293b" stroke-width="1">
+    <line x1="140" y1="340" x2="1060" y2="340"/>
+    <line x1="140" y1="380" x2="1060" y2="380"/>
+    <line x1="140" y1="420" x2="1060" y2="420"/>
+    <line x1="140" y1="460" x2="1060" y2="460"/>
+    <line x1="260" y1="320" x2="260" y2="480"/>
+    <line x1="420" y1="320" x2="420" y2="480"/>
+    <line x1="580" y1="320" x2="580" y2="480"/>
+    <line x1="740" y1="320" x2="740" y2="480"/>
+    <line x1="900" y1="320" x2="900" y2="480"/>
+  </g>
+  <path d="M140 440 L200 420 L260 410 L320 360 L380 340 L440 360 L500 410 L560 450 L620 460 L680 430 L740 360 L800 350 L860 400 L920 420 L980 410 L1040 430"
+        fill="none" stroke="#2563eb" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M140 420 L200 390 L260 350 L320 320 L380 370 L440 430 L500 460 L560 420 L620 380 L680 340 L740 360 L800 420 L860 450 L920 430 L980 360 L1040 330"
+        fill="none" stroke="#f59e0b" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M140 470 L200 465 L260 460 L320 455 L380 458 L440 462 L500 464 L560 466 L620 462 L680 458 L740 456 L800 459 L860 463 L920 466 L980 462 L1040 458"
+        fill="none" stroke="#10b981" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+  <text x="600" y="520" font-family="Arial, Helvetica, sans-serif" font-size="32" text-anchor="middle" fill="#bae6fd">spot.utilitarian.io/explorer</text>
+</svg>

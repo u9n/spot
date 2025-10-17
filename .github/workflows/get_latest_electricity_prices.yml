@@ -107,13 +107,27 @@ jobs:
          # setup the username and email. 
          git config user.name "GitHub Actions Bot"
          git config user.email "<>"
-    - name: check for changes
-      run: git status
     - name: stage changed files
-      run: git add .
+      run: git add -A
+    - name: detect changes
+      id: git_status
+      run: |
+        if git diff --cached --quiet; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          echo "No changes detected."
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "Changes detected."
+        fi
+    - name: no changes
+      if: steps.git_status.outputs.changed == 'false'
+      run: echo "Nothing to commit; skipping git push."
+    - name: pull latest
+      if: steps.git_status.outputs.changed == 'true'
+      run: git pull --rebase origin main
     - name: commit changed files
+      if: steps.git_status.outputs.changed == 'true'
       run: git commit -m "Added new prices"
-    - name: pull from master
-      run: git pull origin main
     - name: push code to master
+      if: steps.git_status.outputs.changed == 'true'
       run: git push origin main
