@@ -124,7 +124,10 @@ jobs:
       run: echo "Nothing to commit; skipping git push."
     - name: pull latest
       if: steps.git_status.outputs.changed == 'true'
-      run: git pull --rebase origin main
+      run: git pull --rebase --autostash origin main
+    - name: restage after rebase
+      if: steps.git_status.outputs.changed == 'true'
+      run: git add -A
     - name: commit changed files
       if: steps.git_status.outputs.changed == 'true'
       run: git commit -m "Added new prices"
