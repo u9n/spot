@@ -76,7 +76,7 @@
                 </span>
             </h1>
             <p class="mx-auto mt-6 max-w-2xl text-lg tracking-tight text-slate-700">
-                Access historical and day ahead prices of energy across the EU. Simple, fast and free.
+                Access historical and day ahead prices of energy across the EU. Simple, fast and free. Build your own dashboards or apps on top of the same data—no billing, no rate limits.
             </p>
 
         </div>
@@ -258,6 +258,15 @@ may_3rd = httpx.get(
                                 and improve performance.</p>
                             <p class="text-sm text-slate-700">Values are in €/MWh. Some markets provide hourly values;
                                 others provide 15‑minute values.</p>
+                        </div>
+                        <div class="mt-4 p-4 bg-slate-100 rounded-lg">
+                            <h5 class="font-medium text-slate-900 mb-2">Build Charts &amp; Apps for Free</h5>
+                            <p class="text-sm text-slate-700 mb-2">All endpoints are public with CORS enabled and there is no rate limiting. Fetch the data straight into your frontend, backend or notebooks and visualise prices any way you like.</p>
+                            <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5">
+                                <li>Unlimited API access for internal tools, dashboards and open data projects.</li>
+                                <li>Host your own visualisations or embed the data directly in IoT controllers.</li>
+                                <li>No API keys required—just point your app at the JSON URLs.</li>
+                            </ul>
                         </div>
                     </div>
 
@@ -683,7 +692,6 @@ may_3rd = httpx.get(
                 <br>
                 <p class="my-2">Prices are fetched from the EU ENTSO-E Transparency Platform.</p>
                 <p class="my-2">Time is in UTC and prices are in €/MWh.</p>
-
             </div>
             <div
                 class="flex flex-col items-center border-t border-slate-400/10 py-10 sm:flex-row-reverse sm:justify-between">
@@ -703,6 +711,11 @@ may_3rd = httpx.get(
             </div>
         </div>
     </footer>
+    <div class="bg-slate-900 text-slate-300 text-xs py-6">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center leading-relaxed">
+            Disclaimer: data is collected from ENTSO-E and provided on a best-effort basis without guarantees of accuracy, completeness, or availability. Utilitarian Spot offers no service-level agreement and accepts no liability for losses or damages resulting from use of the data or service interruptions.
+        </div>
+    </div>
 </body>
 
 </html>
