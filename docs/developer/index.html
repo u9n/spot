@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Developer Documentation | Utilitarian Spot</title>
+    <meta name="description" content="Developer documentation for Utilitarian Spot's electricity price API." />
+    <link rel="icon" type="image/png" href="/assets/favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="shortcut icon" href="/assets/favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Spot" />
+    <link rel="manifest" href="/assets/favicon/site.webmanifest" />
+    <meta name="theme-color" content="#0f172a" />
+
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css" />
+    </noscript>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+</head>
+<body class="bg-slate-50">
+    <header class="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-40">
+        <nav class="mx-auto flex max-w-6xl items-center justify-center gap-6 px-4 py-3 text-sm font-semibold text-slate-600">
+            <a href="/" class="hover:text-slate-900">Latest Prices</a>
+            <a href="/explorer/" class="hover:text-slate-900">Historical Explorer</a>
+            <a href="/developer/" class="hover:text-slate-900 text-slate-900">Developer</a>
+        </nav>
+    </header>
+    <main class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12">
+        <header class="text-center mb-12">
+            <h1 class="font-display text-3xl sm:text-4xl font-semibold text-slate-900">Developer documentation</h1>
+            <p class="mt-3 text-slate-600 text-sm sm:text-base">Reusable JSON endpoints, examples, and response formats for Utilitarian Spot.</p>
+            <a href="/" class="inline-flex items-center justify-center mt-4 rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">← Back to Utilitarian Spot</a>
+        </header>
+
+        <section class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                <h2 class="text-lg font-semibold text-slate-900">REST API endpoints</h2>
+                <p class="text-sm text-slate-700 mt-1">All timestamps are ISO‑8601 in UTC. Responses are JSON arrays of objects with <code class="bg-slate-100 px-1 py-0.5 rounded">timestamp</code> and <code class="bg-slate-100 px-1 py-0.5 rounded">value</code>.</p>
+            </div>
+
+            <div class="flex flex-col">
+                <article class="p-6 border-b border-slate-200">
+                    <div class="flex items-center mb-3">
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                        <h3 class="font-semibold text-slate-900">Latest prices</h3>
+                    </div>
+                    <p class="text-sm text-slate-700 mb-3">Today and tomorrow (published day-ahead).</p>
+                    <pre class="text-slate-700 p-3 rounded text-sm overflow-x-auto"><code>GET /electricity/{ZONE}/latest/</code></pre>
+                    <div class="mt-3">
+                        <a href="/electricity/SE1/latest/" target="_blank" class="text-green-700 hover:text-green-900 text-sm font-semibold underline underline-offset-2">Try: /electricity/SE1/latest/ →</a>
+                    </div>
+                </article>
+
+                <article class="p-6 border-b border-slate-200">
+                    <h3 class="font-semibold text-slate-900 mb-4">Technical notes</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                                <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-slate-900">CORS enabled</h4>
+                                <p class="text-sm text-slate-700">Call endpoints directly from browsers.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                                <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-slate-900">Static &amp; cacheable</h4>
+                                <p class="text-sm text-slate-700">Use <code>If-Modified-Since</code> to avoid re-downloading unchanged data.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                                <svg class="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-slate-900">ENTSO-E data</h4>
+                                <p class="text-sm text-slate-700">All values originate from the ENTSO-E Transparency Platform in UTC and €/MWh.</p>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="p-6 border-b border-slate-200">
+                    <div class="flex items-center mb-3">
+                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                        <h3 class="font-semibold text-slate-900">Daily</h3>
+                    </div>
+                    <p class="text-sm text-slate-700 mb-3">Quarter-hourly or hourly prices for a specific day.</p>
+                    <pre class="text-slate-700 p-3 rounded text-sm overflow-x-auto"><code>GET /electricity/{ZONE}/{YYYY}/{MM}/{DD}/</code></pre>
+                    <div class="mt-3">
+                        <a href="/electricity/SE1/2025/01/15/" target="_blank" class="text-blue-700 hover:text-blue-900 text-sm font-semibold underline underline-offset-2">Try: /electricity/SE1/2025/01/15/ →</a>
+                    </div>
+                </article>
+
+                <article class="p-6 border-b border-slate-200">
+                    <div class="flex items-center mb-3">
+                        <span class="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+                        <h3 class="font-semibold text-slate-900">Monthly</h3>
+                    </div>
+                    <p class="text-sm text-slate-700 mb-3">All daily values for a month.</p>
+                    <pre class="text-slate-700 p-3 rounded text-sm overflow-x-auto"><code>GET /electricity/{ZONE}/{YYYY}/{MM}/</code></pre>
+                    <div class="mt-3">
+                        <a href="/electricity/SE1/2025/01/" target="_blank" class="text-purple-700 hover:text-purple-900 text-sm font-semibold underline underline-offset-2">Try: /electricity/SE1/2025/01/ →</a>
+                    </div>
+                </article>
+
+                <article class="p-6 border-b border-slate-200">
+                    <div class="flex items-center mb-3">
+                        <span class="w-2 h-2 bg-orange-500 rounded-full mr-3"></span>
+                        <h3 class="font-semibold text-slate-900">Yearly</h3>
+                    </div>
+                    <p class="text-sm text-slate-700 mb-3">All daily values for a year.</p>
+                    <pre class="text-slate-700 p-3 rounded text-sm overflow-x-auto"><code>GET /electricity/{ZONE}/{YYYY}/</code></pre>
+                    <div class="mt-3">
+                        <a href="/electricity/SE1/2025/" target="_blank" class="text-orange-700 hover:text-orange-900 text-sm font-semibold underline underline-offset-2">Try: /electricity/SE1/2025/ →</a>
+                    </div>
+                </article>
+
+                <article class="p-6 border-b border-slate-200">
+                    <h3 class="font-semibold text-slate-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                        </svg>
+                        Python examples
+                    </h3>
+                    <pre class="text-slate-700 p-4 rounded-lg text-xs sm:text-sm overflow-x-auto"><code class="language-python">import httpx
+
+# Latest prices for SE1
+latest = httpx.get(
+    "https://spot.utilitarian.io/electricity/SE1/latest/"
+).json()
+
+# All prices for 2022
+year_2022 = httpx.get(
+    "https://spot.utilitarian.io/electricity/SE2/2022/"
+).json()
+
+# Prices for May 2022
+may_prices = httpx.get(
+    "https://spot.utilitarian.io/electricity/SE3/2022/05/"
+).json()
+
+# Specific day: May 3rd 2022
+may_3rd = httpx.get(
+    "https://spot.utilitarian.io/electricity/SE4/2022/05/03/"
+).json()</code></pre>
+                </article>
+
+                <article class="p-6 border-b border-slate-200">
+                    <h3 class="font-semibold text-slate-900 mb-4">Response format</h3>
+                    <pre class="text-slate-700 p-4 rounded-lg text-xs sm:text-sm overflow-x-auto"><code class="language-json">[
+  {
+    "timestamp": "2025-10-09T00:00:00+00:00",
+    "value": "27.12"
+  },
+  {
+    "timestamp": "2025-10-09T00:15:00+00:00",
+    "value": "28.03"
+  }
+]</code></pre>
+                    <div class="mt-4 p-4 bg-slate-50 rounded-lg text-sm text-slate-700 leading-relaxed">
+                        <h4 class="font-medium text-slate-900 mb-2">How price data works</h4>
+                        <p class="mb-2">Each price point is valid from its timestamp until the next point is reached. We omit explicit intervals to keep payloads compact.</p>
+                        <p>Values are expressed in €/MWh. Some markets deliver hourly values, others provide 15-minute granularity.</p>
+                    </div>
+                    <div class="mt-4 p-4 bg-slate-100 rounded-lg text-sm text-slate-700 leading-relaxed">
+                        <h4 class="font-medium text-slate-900 mb-2">Build charts &amp; apps without limits</h4>
+                        <ul class="space-y-2 list-disc pl-5">
+                            <li>Endpoints are public with CORS enabled and no rate limiting.</li>
+                            <li>Perfect for dashboards, notebooks, automation, or IoT controllers.</li>
+                            <li>No API keys required—call the JSON URLs directly.</li>
+                        </ul>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <footer class="mt-12 text-center text-xs text-slate-500 leading-relaxed">
+            Source data is reused from the <a href="https://transparency.entsoe.eu" target="_blank" rel="noopener noreferrer" class="text-slate-700 font-semibold hover:text-slate-900">ENTSO-E Transparency Platform</a> under the terms of CC BY 4.0. Utilitarian Spot is provided on a best-effort basis without uptime or accuracy guarantees.
+        </footer>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.hljs) {
+                document.querySelectorAll('pre code').forEach(block => window.hljs.highlightElement(block));
+            }
+        });
+    </script>
+</body>
+</html>

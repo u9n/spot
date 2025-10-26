@@ -33,6 +33,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="Spot" />
     <link rel="manifest" href="/assets/favicon/site.webmanifest" />
+    <meta name="theme-color" content="#0f172a" />
 
     <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -58,9 +59,17 @@
             href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css">
     </noscript>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+    <script defer src="/assets/spot-notify.js"></script>
 </head>
 
 <body>
+    <header class="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-40">
+        <nav class="mx-auto flex max-w-6xl items-center justify-center gap-6 px-4 py-3 text-sm font-semibold text-slate-600">
+            <a href="/" class="hover:text-slate-900 text-slate-900">Latest Prices</a>
+            <a href="/explorer/" class="hover:text-slate-900">Historical Explorer</a>
+            <a href="/developer/" class="hover:text-slate-900">Developer</a>
+        </nav>
+    </header>
     <main>
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 text-center lg:pt-16">
             <h1 class="mx-auto max-w-4xl font-display text-5xl font-medium tracking-tight text-slate-900 sm:text-7xl">
@@ -113,252 +122,72 @@
                 Explore historical prices →
             </a>
         </div>
-        <div class="mx-auto max-w-6xl mt-16">
-            <h2
-                class="mx-auto max-w-3xl font-display text-center text-xl font-medium tracking-tight text-slate-900 mb-8">
-                API Documentation
-            </h2>
-
-            <div class="bg-white rounded-xl shadow-lg border border-slate-200/60 overflow-hidden">
-                <!-- Header -->
-                <div class="bg-slate-50 px-6 py-4 border-b border-slate-200/60">
-                    <h3 class="text-lg font-semibold text-slate-900">REST API Endpoints</h3>
-                    <p class="text-sm text-slate-700 mt-1">All timestamps are ISO‑8601 in UTC. Responses are JSON arrays
-                        of { timestamp, value }.</p>
+        <div id="spot-notification-panel" class="mx-auto mt-10 max-w-3xl px-4 sm:px-6 lg:px-8">
+            <div class="rounded-xl border border-yellow-200 bg-white shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-slate-900">New price notifications (in development)</h3>
+                <p class="text-sm text-slate-700 mb-4">
+                    Pick a bidding zone and we’ll tap you when tomorrow’s prices land. Works today on Chrome/Edge/Android, and falls back to refreshing whenever you reopen the site elsewhere.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                    <label class="sr-only" for="spot-zone-select">Bidding zone</label>
+                    <select id="spot-zone-select" class="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"></select>
+                    <button id="spot-notify-button" type="button"
+                        class="rounded-md bg-slate-900 text-white px-4 py-2 text-sm font-semibold hover:bg-slate-700">
+                        Enable alerts
+                    </button>
                 </div>
-
-                <!-- Endpoints Grid -->
-                <div class="flex flex-col">
-                    <!-- Latest -->
-                    <div class="p-6 border-b border-slate-200/60">
-                        <div class="flex items-center mb-3">
-                            <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                            <h4 class="font-semibold text-slate-900">Latest Prices</h4>
-                        </div>
-                        <div class="px-6 py-4 bg-white text-slate-800">
-                            <p class="text-sm text-slate-700 mb-3">Today + tomorrow (published day‑ahead)</p>
-                            <pre
-                                class="text-slate-700 p-3 rounded text-sm overflow-x-auto"><code>GET /electricity/{ZONE}/latest/</code></pre>
-                            <div class="mt-3">
-                                <a href="/electricity/SE1/latest/" target="_blank"
-                                    class="text-green-700 hover:text-green-900 text-sm font-semibold underline underline-offset-2">
-                                    Try: /electricity/SE1/latest/ →
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- Daily -->
-                        <div class="p-6 border-b border-slate-200/60">
-                            <div class="flex items-center mb-3">
-                                <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                                <h4 class="font-semibold text-slate-900">Daily</h4>
-                            </div>
-                            <div class="px-6 py-4 bg-white text-slate-800">
-                                <p class="text-sm text-slate-700 mb-3">Quarter‑hourly prices for a specific day</p>
-                                <pre
-                                    class="text-slate-700 p-3 rounded text-sm overflow-x-auto"><code>GET /electricity/{ZONE}/{YYYY}/{MM}/{DD}/</code></pre>
-                                <div class="mt-3">
-                                    <a href="/electricity/SE1/2025/01/15/" target="_blank"
-                                        class="text-green-700 hover:text-green-900 text-sm font-semibold underline underline-offset-2">
-                                        Try: /electricity/SE1/2025/01/15/ →
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Monthly -->
-                        <div class="p-6 border-b border-slate-200/60">
-                            <div class="flex items-center mb-3">
-                                <div class="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
-                                <h4 class="font-semibold text-slate-900">Monthly</h4>
-                            </div>
-                            <div class="px-6 py-4 bg-white text-slate-800">
-                                <p class="text-sm text-slate-700 mb-3">All daily values for a month</p>
-                                <pre
-                                    class="text-slate-700 p-3 rounded text-sm overflow-x-auto"><code>GET /electricity/{ZONE}/{YYYY}/{MM}/</code></pre>
-                                <div class="mt-3">
-                                    <a href="/electricity/SE1/2025/01/" target="_blank"
-                                        class="text-green-700 hover:text-green-900 text-sm font-semibold underline underline-offset-2">
-                                        Try: /electricity/SE1/2025/01/ →
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Yearly -->
-                        <div class="p-6 border-b border-slate-200/60">
-                            <div class="flex items-center mb-3">
-                                <div class="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
-                                <h4 class="font-semibold text-slate-900">Yearly</h4>
-                            </div>
-                            <div class="px-6 py-4 bg-white text-slate-800">
-                                <p class="text-sm text-slate-700 mb-3">All daily values for a year</p>
-                                <pre
-                                    class="text-slate-700 p-3 rounded text-sm overflow-x-auto"><code>GET /electricity/{ZONE}/{YYYY}/</code></pre>
-                                <div class="mt-3">
-                                    <a href="/electricity/SE1/2025/" target="_blank"
-                                        class="text-green-700 hover:text-green-900 text-sm font-semibold underline underline-offset-2">
-                                        Try: /electricity/SE1/2025/ →
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Python Examples -->
-                    <div class="p-6 border-b border-slate-200/60">
-                        <h4 class="font-semibold text-slate-900 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z">
-                                </path>
-                            </svg>
-                            Python Examples
-                        </h4>
-                        <pre class="text-slate-700 p-4 rounded-lg text-xs sm:text-sm overflow-x-auto"><code class="language-python">import httpx
-
-# Latest prices for SE1
-latest = httpx.get(
-    "https://spot.utilitarian.io/electricity/SE1/latest/"
-).json()
-
-# All prices for 2022
-year_2022 = httpx.get(
-    "https://spot.utilitarian.io/electricity/SE2/2022/"
-).json()
-
-# Prices for May 2022
-may_prices = httpx.get(
-    "https://spot.utilitarian.io/electricity/SE3/2022/05/"
-).json()
-
-# Specific day: May 3rd 2022
-may_3rd = httpx.get(
-    "https://spot.utilitarian.io/electricity/SE4/2022/05/03/"
-).json()</code></pre>
-                    </div>
-
-                    <!-- Response Format -->
-                    <div class="p-6 border-b border-slate-200/60">
-                        <h4 class="font-semibold text-slate-900 mb-4">Response Format</h4>
-                        <pre class="text-slate-700 p-4 rounded-lg text-xs sm:text-sm overflow-x-auto"><code class="language-json">[
-  {
-    "timestamp": "2025-10-09T00:00:00+00:00",
-    "value": "27.12"
-  },
-  {
-    "timestamp": "2025-10-09T00:15:00+00:00", 
-    "value": "28.03"
-  }
-]</code></pre>
-                        <div class="mt-4 p-4 bg-slate-50 rounded-lg">
-                            <h5 class="font-medium text-slate-900 mb-2">How Price Data Works</h5>
-                            <p class="text-sm text-slate-700 mb-2">Each price point is valid from its timestamp until
-                                the next point is reached. We don't provide time spans or intervals to reduce JSON size
-                                and improve performance.</p>
-                            <p class="text-sm text-slate-700">Values are in €/MWh. Some markets provide hourly values;
-                                others provide 15‑minute values.</p>
-                        </div>
-                        <div class="mt-4 p-4 bg-slate-100 rounded-lg">
-                            <h5 class="font-medium text-slate-900 mb-2">Build Charts &amp; Apps for Free</h5>
-                            <p class="text-sm text-slate-700 mb-2">All endpoints are public with CORS enabled and there is no rate limiting. Fetch the data straight into your frontend, backend or notebooks and visualise prices any way you like.</p>
-                            <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5">
-                                <li>Unlimited API access for internal tools, dashboards and open data projects.</li>
-                                <li>Host your own visualisations or embed the data directly in IoT controllers.</li>
-                                <li>No API keys required—just point your app at the JSON URLs.</li>
-                            </ul>
-                        </div>
-                    </div>
+                <p id="spot-notify-status" class="mt-3 text-xs text-slate-600"></p>
+                <p id="spot-notify-last" class="mt-1 text-xs text-slate-500"></p>
+            </div>
+        </div>
+        <div class="mx-auto max-w-6xl mt-16 text-center">
+            <a href="/developer/" class="inline-flex items-center justify-center rounded-full py-3 px-6 text-sm font-semibold border border-slate-300 text-slate-800 hover:bg-slate-100">
+                Developer documentation →
+            </a>
+        </div>
 
                     <!-- Available Zones -->
                     <div class="p-6 border-b border-slate-200/60">
-                        <h4 class="font-semibold text-slate-900 mb-4">Available Zones</h4>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                            <div>
-                                <h5 class="font-medium text-slate-700 mb-2">Nordics</h5>
-                                <div class="space-y-1 text-slate-700">
-                                    <div>🇸🇪 <strong>Sweden:</strong> SE1, SE2, SE3, SE4</div>
-                                    <div>🇩🇰 <strong>Denmark:</strong> DK1, DK2</div>
-                                    <div>🇳🇴 <strong>Norway:</strong> NO1, NO2, NO3, NO4, NO5</div>
-                                    <div>🇫🇮 <strong>Finland:</strong> FI</div>
-                                </div>
+                        <div class="bg-white rounded-xl shadow-md border border-slate-200">
+                            <div class="px-6 py-4 border-b border-slate-100">
+                                <h4 class="font-semibold text-slate-900">Available Zones</h4>
+                                <p class="text-sm text-slate-600">Each endpoint uses the zone codes below.</p>
                             </div>
-                            <div>
-                                <h5 class="font-medium text-slate-700 mb-2">Central Europe</h5>
-                                <div class="space-y-1 text-slate-700">
-                                    <div>🇩🇪 <strong>Germany:</strong> DE_LU</div>
-                                    <div>🇦🇹 <strong>Austria:</strong> AT</div>
-                                    <div>🇫🇷 <strong>France:</strong> FR</div>
-                                    <div>🇧🇪 <strong>Belgium:</strong> BE</div>
-                                    <div>🇳🇱 <strong>Netherlands:</strong> NL</div>
-                                    <div>🇵🇱 <strong>Poland:</strong> PL</div>
+                            <div class="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <h5 class="font-medium text-slate-700 mb-2">Nordics</h5>
+                                    <div class="space-y-1 text-slate-700">
+                                        <div>🇸🇪 <strong>Sweden:</strong> SE1, SE2, SE3, SE4</div>
+                                        <div>🇩🇰 <strong>Denmark:</strong> DK1, DK2</div>
+                                        <div>🇳🇴 <strong>Norway:</strong> NO1, NO2, NO3, NO4, NO5</div>
+                                        <div>🇫🇮 <strong>Finland:</strong> FI</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div>
-                                <h5 class="font-medium text-slate-700 mb-2">Eastern & Southern</h5>
-                                <div class="space-y-1 text-slate-700">
-                                    <div>🇪🇪 <strong>Estonia:</strong> EE</div>
-                                    <div>🇱🇹 <strong>Lithuania:</strong> LT</div>
-                                    <div>🇱🇻 <strong>Latvia:</strong> LV</div>
-                                    <div>🇮🇹 <strong>Italy:</strong> IT-NORTH, IT-CENTRE_NORTH, IT-CENTRE_SOUTH,
-                                        IT-SOUTH, IT-SICILY, IT-SARDINIA, IT-CALABRIA</div>
-                                    <div>🇪🇸 <strong>Spain:</strong> ES</div>
-                                    <div>🇵🇹 <strong>Portugal:</strong> PT</div>
-
+                                <div>
+                                    <h5 class="font-medium text-slate-700 mb-2">Central Europe</h5>
+                                    <div class="space-y-1 text-slate-700">
+                                        <div>🇩🇪 <strong>Germany:</strong> DE_LU</div>
+                                        <div>🇦🇹 <strong>Austria:</strong> AT</div>
+                                        <div>🇫🇷 <strong>France:</strong> FR</div>
+                                        <div>🇧🇪 <strong>Belgium:</strong> BE</div>
+                                        <div>🇳🇱 <strong>Netherlands:</strong> NL</div>
+                                        <div>🇵🇱 <strong>Poland:</strong> PL</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h5 class="font-medium text-slate-700 mb-2">Eastern &amp; Southern</h5>
+                                    <div class="space-y-1 text-slate-700">
+                                        <div>🇪🇪 <strong>Estonia:</strong> EE</div>
+                                        <div>🇱🇹 <strong>Lithuania:</strong> LT</div>
+                                        <div>🇱🇻 <strong>Latvia:</strong> LV</div>
+                                        <div>🇮🇹 <strong>Italy:</strong> IT-NORTH, IT-CENTRE_NORTH, IT-CENTRE_SOUTH, IT-SOUTH, IT-SICILY, IT-SARDINIA, IT-CALABRIA</div>
+                                        <div>🇪🇸 <strong>Spain:</strong> ES</div>
+                                        <div>🇵🇹 <strong>Portugal:</strong> PT</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Technical Notes -->
-                    <div class="p-6">
-                        <h4 class="font-semibold text-slate-900 mb-4">Technical Notes</h4>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div class="flex items-start">
-                                <div
-                                    class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clip-rule="evenodd"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h5 class="font-medium text-slate-900">CORS Enabled</h5>
-                                    <p class="text-sm text-slate-700">Call endpoints directly from browsers</p>
-                                </div>
-                            </div>
-                            <div class="flex items-start">
-                                <div
-                                    class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z">
-                                        </path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h5 class="font-medium text-slate-900">Static & Cacheable</h5>
-                                    <p class="text-sm text-slate-700">Use If-Modified-Since headers</p>
-                                </div>
-                            </div>
-                            <div class="flex items-start">
-                                <div
-                                    class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                                    <svg class="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                                            clip-rule="evenodd"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h5 class="font-medium text-slate-900">ENTSO-E Data</h5>
-                                    <p class="text-sm text-slate-700">UTC time, €/MWh currency</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <script>
