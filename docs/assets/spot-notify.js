@@ -29,6 +29,7 @@
     return;
   }
 
+
   function populateZones() {
     SELECT.innerHTML = '<option value="">Select bidding zone</option>';
     for (const zone of ZONES) {

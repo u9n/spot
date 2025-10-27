@@ -2,8 +2,12 @@ const STATE_CACHE = 'spot-state-v1';
 const STATE_URL = '/__spot/state';
 const PERIOD_MS = 15 * 60 * 1000; // 15 minutes
 const JITTER_MS = 5 * 60 * 1000; // up to 5 minutes jitter
-const ICON_URL = '/assets/favicon/favicon-96x96.png';
+const ICON_URL = '/assets/favicon/notification-icon.png';
+const BADGE_URL = '/assets/favicon/notification-badge.png';
 const SYNC_TAG = 'spot-latest-sync';
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+const DEFAULT_DATA_ORIGIN = self.location && LOCAL_HOSTS.has(self.location.hostname) ? 'https://spot.utilitarian.io' : '';
+let dataOrigin = DEFAULT_DATA_ORIGIN;
 
 self.addEventListener('install', event => {
   event.waitUntil(self.skipWaiting());
@@ -17,25 +21,47 @@ async function openStateCache() {
   return await caches.open(STATE_CACHE);
 }
 
+async function postToClients(message) {
+  const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  for (const client of clientsList) {
+    client.postMessage(message);
+  }
+}
+
 async function getState() {
+  const base = { zone: null, lastTimestamp: null, origin: DEFAULT_DATA_ORIGIN };
   const cache = await openStateCache();
   const match = await cache.match(STATE_URL);
   if (!match) {
-    return { zone: null, lastTimestamp: null };
+    dataOrigin = base.origin;
+    return base;
   }
+  let stored;
   try {
-    return await match.json();
+    stored = await match.json();
   } catch (_) {
-    return { zone: null, lastTimestamp: null };
+    dataOrigin = base.origin;
+    return base;
   }
+  const zone = typeof stored.zone === 'string' && stored.zone ? stored.zone : null;
+  const lastTimestamp = typeof stored.lastTimestamp === 'string' ? stored.lastTimestamp : null;
+  const origin = typeof stored.origin === 'string' ? stored.origin : DEFAULT_DATA_ORIGIN;
+  dataOrigin = origin;
+  return { zone, lastTimestamp, origin };
 }
 
 async function setState(state) {
   const cache = await openStateCache();
-  await cache.put(STATE_URL, new Response(JSON.stringify(state), {
+  const next = {
+    zone: typeof state.zone === 'string' && state.zone ? state.zone : null,
+    lastTimestamp: typeof state.lastTimestamp === 'string' ? state.lastTimestamp : null,
+    origin: typeof state.origin === 'string' ? state.origin : (dataOrigin ?? DEFAULT_DATA_ORIGIN)
+  };
+  dataOrigin = next.origin;
+  await cache.put(STATE_URL, new Response(JSON.stringify(next), {
     headers: { 'Content-Type': 'application/json' }
   }));
-  return state;
+  return next;
 }
 
 function computeJitter() {
@@ -43,7 +69,10 @@ function computeJitter() {
 }
 
 async function fetchLatest(zone) {
-  const response = await fetch(`/electricity/${zone}/latest/`, { cache: 'no-store' });
+  const origin = typeof dataOrigin === 'string' ? dataOrigin : DEFAULT_DATA_ORIGIN;
+  const base = origin || '';
+  const url = `${base}/electricity/${encodeURIComponent(zone)}/latest/index.json`;
+  const response = await fetch(url, { cache: 'no-store' });
   if (!response.ok) {
     throw new Error(`Failed to fetch latest for ${zone}`);
   }
@@ -64,7 +93,7 @@ async function announce(zone, timestamp) {
       await self.registration.showNotification(`New day-ahead prices for ${zone}!`, {
         body: 'Tap to view the latest values.',
         icon: ICON_URL,
-        badge: ICON_URL,
+        badge: BADGE_URL,
         data: { url: `/explorer/?zones=${encodeURIComponent(zone)}`, zone, timestamp }
       });
     } catch (err) {
@@ -80,10 +109,7 @@ async function announce(zone, timestamp) {
     }
   }
 
-  const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-  for (const client of clientsList) {
-    client.postMessage({ type: 'new-prices', zone, timestamp });
-  }
+  await postToClients({ type: 'new-prices', zone, timestamp });
 }
 
 async function handleSync({ skipDelay = false } = {}) {
@@ -104,14 +130,18 @@ async function handleSync({ skipDelay = false } = {}) {
     if (!latestTimestamp) {
       return;
     }
-   if (!state.lastTimestamp || latestTimestamp > state.lastTimestamp) {
-     state.lastTimestamp = latestTimestamp;
-     await setState(state);
-     await announce(state.zone, latestTimestamp);
-      const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      for (const client of clientsList) {
-        client.postMessage({ type: 'state-updated', state });
-      }
+    const previousTimestamp = state.lastTimestamp || null;
+    if (!previousTimestamp) {
+      state.lastTimestamp = latestTimestamp;
+      const updated = await setState(state);
+      await postToClients({ type: 'state-updated', state: updated });
+      return;
+    }
+    if (latestTimestamp > previousTimestamp) {
+      state.lastTimestamp = latestTimestamp;
+      const updated = await setState(state);
+      await announce(state.zone, latestTimestamp);
+      await postToClients({ type: 'state-updated', state: updated });
     }
   } catch (err) {
     console.warn('Price polling failed', err);
@@ -153,18 +183,17 @@ self.addEventListener('message', event => {
     case 'set-zone':
       event.waitUntil((async () => {
         const current = await getState();
-        const zone = data.zone || null;
+        const zone = typeof data.zone === 'string' && data.zone ? data.zone : null;
         const state = {
           zone,
-          lastTimestamp: zone && current.zone === zone ? current.lastTimestamp : null
+          lastTimestamp: zone && current.zone === zone ? current.lastTimestamp : null,
+          origin: current.origin
         };
         const updated = await setState(state);
         if (!zone && self.registration.clearAppBadge) {
           self.registration.clearAppBadge().catch(() => {});
         }
-        if (event.source) {
-          event.source.postMessage({ type: 'state-updated', state: updated });
-        }
+        await postToClients({ type: 'state-updated', state: updated });
       })());
       break;
     case 'trigger-poll':
@@ -182,6 +211,38 @@ self.addEventListener('message', event => {
       if (self.registration.clearAppBadge) {
         self.registration.clearAppBadge().catch(() => {});
       }
+      break;
+    case 'set-data-origin':
+      event.waitUntil((async () => {
+        const origin = typeof data.origin === 'string' ? data.origin : DEFAULT_DATA_ORIGIN;
+        const current = await getState();
+        const updated = await setState({
+          zone: current.zone,
+          lastTimestamp: current.lastTimestamp,
+          origin
+        });
+        await postToClients({ type: 'state-updated', state: updated });
+      })());
+      break;
+    case 'dev-notify':
+      event.waitUntil((async () => {
+        const state = await getState();
+        const zone = state.zone || 'DEV';
+        const now = new Date().toISOString();
+        try {
+          await self.registration.showNotification(`Dev notification for ${zone}`, {
+            body: 'Triggered from the local harness.',
+            icon: ICON_URL,
+            badge: BADGE_URL,
+            data: { url: `/explorer/?zones=${encodeURIComponent(zone)}`, zone, timestamp: now }
+          });
+        } catch (err) {
+          console.warn('Dev notification failed', err);
+        }
+        if (self.registration.setAppBadge) {
+          self.registration.setAppBadge(1).catch(() => {});
+        }
+      })());
       break;
     default:
       break;
