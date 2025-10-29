@@ -1,0 +1,28 @@
+name = "spot-subscribe"
+main = "worker.js"
+compatibility_date = "2025-10-01"
+
+# Your custom domain for the Worker
+routes = [
+  { pattern = "spot-subscribe.utilitarian.io/*", zone_name = "utilitarian.io" }
+]
+
+# Bind your KV namespace for subscriptions and timestamps
+[[kv_namespaces]]
+binding = "subscriptions"
+id = "340f4e03fe814c2495027761d9e39c85"
+
+
+# Worker variables
+[vars]
+ALLOWED_ORIGIN = "https://spot.utilitarian.io"
+
+# Enable smart placement (Cloudflare auto chooses EU or global edge)
+[placement]
+mode = "smart"
+
+# Compatibility flags if you want the latest APIs (optional)
+# compatibility_flags = ["nodejs_compat"]
+
+# You’ll add the ADMIN_TOKEN secret separately:
+#   wrangler secret put ADMIN_TOKEN

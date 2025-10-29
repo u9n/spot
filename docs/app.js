@@ -1,8 +1,19 @@
 (() => {
+  // ---------------------------------------------------------------------------
+  // Dev Notification Harness
+  // ---------------------------------------------------------------------------
+  // This script powers the optional dev panel that helps us exercise the
+  // notification service worker while developing. It lets us:
+  //   • request Notification permission explicitly
+  //   • send a synthetic “dev notification” through the SW
+  //   • clear the app badge
+  //   • switch the data origin used by the SW (production / local / custom)
+  // The panel is hidden by default and only becomes visible on localhost,
+  // ngrok tunnels, or when `?dev-harness=1` is appended to the URL.
+  // ---------------------------------------------------------------------------
+
   const devPanel = document.getElementById('spot-dev-panel');
-  if (!devPanel) {
-    return;
-  }
+  if (!devPanel) return;
 
   const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
   const NGROK_PATTERN = /(?:\.ngrok(?:-free)?\.app|ngrok\.io)$/i;
@@ -11,63 +22,60 @@
 
   const HARNESS_FLAG_KEY = 'spot.dev.harnessEnabled';
   const search = new URLSearchParams(location.search);
-  const devParam = search.get('dev-harness');
+  const flagParam = search.get('dev-harness');
 
-  if (devParam !== null) {
-    const shouldDisable = ['0', 'false', 'off', 'no'].includes(devParam.toLowerCase());
+  if (flagParam !== null) {
+    const disable = ['0', 'false', 'off', 'no'].includes(flagParam.toLowerCase());
     try {
-      if (shouldDisable) {
+      if (disable) {
         localStorage.removeItem(HARNESS_FLAG_KEY);
       } else {
         localStorage.setItem(HARNESS_FLAG_KEY, '1');
       }
     } catch (_) {
-      // ignore storage errors (private mode etc.)
+      // ignore storage failures (private browsing, etc.)
     }
   }
 
-  let storedHarnessEnabled = false;
-  try {
-    storedHarnessEnabled = localStorage.getItem(HARNESS_FLAG_KEY) === '1';
-  } catch (_) {
-    storedHarnessEnabled = false;
+  let harnessEnabled = isDevHost;
+  if (!harnessEnabled) {
+    try {
+      harnessEnabled = localStorage.getItem(HARNESS_FLAG_KEY) === '1';
+    } catch (_) {
+      harnessEnabled = false;
+    }
   }
-
-  const harnessEnabled = isDevHost || storedHarnessEnabled;
 
   if (!harnessEnabled) {
     try {
       window.enableSpotHarness = () => {
-        try {
-          localStorage.setItem(HARNESS_FLAG_KEY, '1');
-        } catch (_) {
-          // swallow storage failures
-        }
+        try { localStorage.setItem(HARNESS_FLAG_KEY, '1'); } catch (_) {}
         location.reload();
       };
       window.disableSpotHarness = () => {
-        try {
-          localStorage.removeItem(HARNESS_FLAG_KEY);
-        } catch (_) {
-          // swallow storage failures
-        }
+        try { localStorage.removeItem(HARNESS_FLAG_KEY); } catch (_) {}
         location.reload();
       };
     } catch (_) {
-      // window might be undefined in some embeddings
+      // ignore – window may not exist in some embeddings
     }
     return;
   }
 
   devPanel.classList.remove('hidden');
+
+  /* ------------------------------------------------------------------------ */
+  /* Elements                                                                 */
+  /* ------------------------------------------------------------------------ */
+
   const requestButton = document.getElementById('dev-request-permission');
-  const pollButton = document.getElementById('dev-trigger-poll');
   const notifyButton = document.getElementById('dev-force-notify');
   const clearButton = document.getElementById('dev-clear-badge');
   const originSelect = document.getElementById('dev-data-origin');
+  const customOriginWrap = document.getElementById('dev-data-origin-custom-wrap');
+  const customOriginInput = document.getElementById('dev-data-origin-custom');
   const zoneEl = document.getElementById('dev-state-zone');
   const tsEl = document.getElementById('dev-state-timestamp');
-  const modeEl = document.getElementById('dev-state-mode');
   const originEl = document.getElementById('dev-state-origin');
   const statusEl = document.getElementById('dev-status');
 
@@ -75,119 +83,122 @@
     remote: 'https://spot.utilitarian.io',
     local: ''
   };
-  const DEFAULT_ORIGIN_PRESET = 'remote';
+  const VALID_PRESETS = new Set(['remote', 'local', 'custom']);
+  const DEFAULT_PRESET = 'remote';
   const ORIGIN_STORAGE_KEY = 'spot.dev.originPreset';
-  const SYNC_TAG = 'spot-latest-sync';
+  const ORIGIN_CUSTOM_KEY = 'spot.dev.originCustom';
 
-  const readStoredPreset = () => {
+  const normalizeOrigin = value => {
+    if (typeof value !== 'string') return '';
+    let input = value.trim();
+    if (!input) return '';
+    if (!/^https?:\/\//i.test(input)) input = `https://${input}`;
     try {
-      return localStorage.getItem(ORIGIN_STORAGE_KEY);
+      return new URL(input).origin;
     } catch (_) {
-      return null;
+      return '';
     }
   };
 
-  const persistOriginPreset = preset => {
+  const loadPreset = () => {
     try {
-      localStorage.setItem(ORIGIN_STORAGE_KEY, preset);
+      const stored = localStorage.getItem(ORIGIN_STORAGE_KEY);
+      return stored && VALID_PRESETS.has(stored) ? stored : DEFAULT_PRESET;
     } catch (_) {
-      // ignore storage issues (e.g. private mode)
+      return DEFAULT_PRESET;
     }
   };
 
-  const storedPreset = originSelect ? readStoredPreset() : null;
-  const initialPreset = storedPreset && Object.prototype.hasOwnProperty.call(ORIGIN_PRESETS, storedPreset)
-    ? storedPreset
-    : DEFAULT_ORIGIN_PRESET;
+  const savePreset = preset => {
+    if (!VALID_PRESETS.has(preset)) return;
+    try { localStorage.setItem(ORIGIN_STORAGE_KEY, preset); } catch (_) {}
+  };
 
-  if (originSelect && originSelect.value !== initialPreset) {
-    originSelect.value = initialPreset;
-  }
+  const loadCustomOrigin = () => {
+    try { return normalizeOrigin(localStorage.getItem(ORIGIN_CUSTOM_KEY) || ''); } catch (_) { return ''; }
+  };
+
+  const saveCustomOrigin = value => {
+    const normalized = normalizeOrigin(value);
+    try {
+      if (normalized) {
+        localStorage.setItem(ORIGIN_CUSTOM_KEY, normalized);
+      } else {
+        localStorage.removeItem(ORIGIN_CUSTOM_KEY);
+      }
+    } catch (_) {}
+    return normalized;
+  };
+
+  /* ------------------------------------------------------------------------ */
+  /* Harness state                                                            */
+  /* ------------------------------------------------------------------------ */
 
   const state = {
     zone: null,
     lastTimestamp: null,
-    origin: ORIGIN_PRESETS[initialPreset]
+    origin: ORIGIN_PRESETS.remote,
+    originPreset: DEFAULT_PRESET
   };
 
-  let currentMode = 'fallback';
-  let statusTimeout = null;
   let swReadyPromise = null;
   let controllerPromise = null;
-  let modeIntervalId = null;
+
+  /* ------------------------------------------------------------------------ */
+  /* View helpers                                                             */
+  /* ------------------------------------------------------------------------ */
 
   const setStatus = message => {
-    if (!statusEl) {
-      return;
-    }
-    statusEl.textContent = message || '';
-    if (statusTimeout) {
-      clearTimeout(statusTimeout);
-      statusTimeout = null;
-    }
-    if (message) {
-      statusTimeout = setTimeout(() => {
-        if (statusEl.textContent === message) {
-          statusEl.textContent = '';
-        }
-        statusTimeout = null;
-      }, 4000);
-    }
+    if (statusEl) statusEl.textContent = message || '';
   };
 
   const formatTimestamp = value => {
-    if (!value) {
-      return '—';
-    }
+    if (!value) return '—';
     const date = new Date(value);
-    if (!Number.isNaN(date.getTime())) {
-      return `${date.toLocaleString('en-GB', {
-        timeZone: 'UTC',
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      })} UTC`;
-    }
-    return String(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString('en-GB', {
+      timeZone: 'UTC',
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }) + ' UTC';
   };
 
-  const presetForOrigin = origin => (origin && origin === ORIGIN_PRESETS.remote ? 'remote' : 'local');
-
-  const describeOrigin = origin => (origin
-    ? `Remote (${origin})`
-    : `Local files (${location.origin})`);
-
-  const buildDisplayUrl = zone => {
-    if (!zone) {
-      return '';
-    }
-    const base = state.origin || location.origin;
-    return `${base}/electricity/${encodeURIComponent(zone)}/latest/index.json`;
+  const describeOrigin = origin => {
+    if (!origin) return `Local files (${location.origin})`;
+    if (origin === ORIGIN_PRESETS.remote) return `Remote (${origin})`;
+    return `Custom (${origin})`;
   };
 
   const updateDisplay = () => {
-    if (zoneEl) {
-      zoneEl.textContent = state.zone || '—';
+    if (zoneEl) zoneEl.textContent = state.zone || '—';
+    if (tsEl) tsEl.textContent = formatTimestamp(state.lastTimestamp);
+    if (originEl) originEl.textContent = describeOrigin(state.origin);
+
+    if (originSelect && originSelect.value !== state.originPreset) {
+      originSelect.value = state.originPreset;
     }
-    if (tsEl) {
-      tsEl.textContent = formatTimestamp(state.lastTimestamp);
+
+    if (customOriginWrap) {
+      customOriginWrap.classList.toggle('hidden', state.originPreset !== 'custom');
     }
-    if (modeEl) {
-      modeEl.textContent = currentMode;
-    }
-    if (originEl) {
-      originEl.textContent = describeOrigin(state.origin);
-    }
-    if (originSelect) {
-      const preset = presetForOrigin(state.origin);
-      if (originSelect.value !== preset) {
-        originSelect.value = preset;
+
+    if (customOriginInput) {
+      customOriginInput.disabled = state.originPreset !== 'custom';
+      if (state.originPreset === 'custom') {
+        customOriginInput.value = state.origin || '';
+      } else {
+        customOriginInput.value = '';
       }
     }
   };
+
+  /* ------------------------------------------------------------------------ */
+  /* Service worker helpers                                                   */
+  /* ------------------------------------------------------------------------ */
 
   const ensureServiceWorker = async () => {
     if (!('serviceWorker' in navigator)) {
@@ -195,62 +206,33 @@
     }
     if (!swReadyPromise) {
       swReadyPromise = navigator.serviceWorker.register('/sw.js', { scope: '/' })
-        .catch(err => {
-          setStatus('Service worker registration failed.');
-          throw err;
-        })
         .then(() => navigator.serviceWorker.ready);
     }
     return swReadyPromise;
   };
 
   const waitForController = () => {
-    if (navigator.serviceWorker.controller) {
-      return Promise.resolve(navigator.serviceWorker.controller);
-    }
+    if (navigator.serviceWorker.controller) return Promise.resolve(navigator.serviceWorker.controller);
     if (!controllerPromise) {
       controllerPromise = new Promise(resolve => {
-        const listener = () => {
-          navigator.serviceWorker.removeEventListener('controllerchange', listener);
+        navigator.serviceWorker.addEventListener('controllerchange', function handler() {
+          navigator.serviceWorker.removeEventListener('controllerchange', handler);
           resolve(navigator.serviceWorker.controller);
-        };
-        navigator.serviceWorker.addEventListener('controllerchange', listener);
+        });
       });
     }
     return controllerPromise;
   };
 
-  const withController = async callback => {
-    await ensureServiceWorker();
-    const controller = navigator.serviceWorker.controller || await waitForController();
-    if (!controller) {
-      throw new Error('Service worker controller unavailable.');
-    }
-    return callback(controller);
-  };
-
   const sendMessage = async message => {
     try {
-      await withController(controller => controller.postMessage(message));
+      await ensureServiceWorker();
+      const controller = navigator.serviceWorker.controller || await waitForController();
+      controller?.postMessage(message);
     } catch (err) {
-      console.warn('Dev harness: failed to communicate with service worker', err);
+      console.warn('Dev harness could not reach service worker', err);
       setStatus('Could not reach service worker.');
     }
-  };
-
-  const updateMode = async () => {
-    try {
-      const registration = await ensureServiceWorker();
-      if (registration?.periodicSync?.getTags) {
-        const tags = await registration.periodicSync.getTags();
-        currentMode = tags.includes(SYNC_TAG) ? 'periodic' : 'fallback';
-      } else {
-        currentMode = 'fallback';
-      }
-    } catch (_) {
-      currentMode = 'fallback';
-    }
-    updateDisplay();
   };
 
   const handleMessage = event => {
@@ -259,21 +241,10 @@
       case 'state':
       case 'state-updated':
         if (data.state) {
-          const incomingOrigin = typeof data.state.origin === 'string'
-            ? data.state.origin
-            : state.origin;
-          if (incomingOrigin !== state.origin) {
-            state.origin = incomingOrigin;
-            persistOriginPreset(presetForOrigin(state.origin));
-          }
           state.zone = data.state.zone || null;
           state.lastTimestamp = data.state.lastTimestamp || null;
           updateDisplay();
-          if (state.zone) {
-            setStatus(`Watching ${state.zone} (${buildDisplayUrl(state.zone)})`);
-          } else {
-            setStatus('Choose a zone to enable alerts.');
-          }
+          setStatus(state.zone ? `Watching ${state.zone}` : 'Choose a zone to enable alerts.');
         }
         break;
       case 'new-prices':
@@ -281,77 +252,86 @@
           state.lastTimestamp = data.timestamp;
           updateDisplay();
         }
-        if (data.zone) {
-          setStatus(`New day-ahead prices for ${data.zone}!`);
-        }
         break;
       default:
         break;
     }
   };
 
+  /* ------------------------------------------------------------------------ */
+  /* Event bindings                                                           */
+  /* ------------------------------------------------------------------------ */
+
   const bindEvents = () => {
-    if (requestButton) {
-      requestButton.addEventListener('click', async () => {
-        if (!('Notification' in window)) {
-          setStatus('Notifications are not supported in this browser.');
-          return;
-        }
-        try {
-          const result = await Notification.requestPermission();
-          setStatus(`Notification permission: ${result}`);
-        } catch (err) {
-          console.warn('Notification permission request failed', err);
-          setStatus('Notification permission request failed.');
-        }
-      });
-    }
-
-    if (pollButton) {
-      pollButton.addEventListener('click', async () => {
-        await sendMessage({ type: 'trigger-poll', skipDelay: true });
-        setStatus('Requested immediate poll.');
-      });
-    }
-
-    if (notifyButton) {
-      notifyButton.addEventListener('click', async () => {
-        await sendMessage({ type: 'dev-notify' });
-        setStatus('Dev notification requested.');
-      });
-    }
-
-    if (clearButton) {
-      clearButton.addEventListener('click', async () => {
-        navigator.clearAppBadge?.();
-        await sendMessage({ type: 'clear-badge' });
-        setStatus('Badge cleared.');
-      });
-    }
-
-    if (originSelect) {
-      originSelect.addEventListener('change', async () => {
-        const preset = originSelect.value && Object.prototype.hasOwnProperty.call(ORIGIN_PRESETS, originSelect.value)
-          ? originSelect.value
-          : DEFAULT_ORIGIN_PRESET;
-        state.origin = ORIGIN_PRESETS[preset];
-        persistOriginPreset(preset);
-        updateDisplay();
-        await sendMessage({ type: 'set-data-origin', origin: state.origin });
-        setStatus(`Data source set to ${describeOrigin(state.origin)}`);
-      });
-    }
-
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        try {
-          navigator.clearAppBadge?.();
-        } catch (_) {
-          // ignore
-        }
+    requestButton?.addEventListener('click', async () => {
+      if (!('Notification' in window)) {
+        setStatus('Notifications are not supported in this browser.');
+        return;
+      }
+      try {
+        const permission = await Notification.requestPermission();
+        setStatus(`Notification permission: ${permission}`);
+      } catch (err) {
+        console.warn('Permission request failed', err);
+        setStatus('Notification permission request failed.');
       }
     });
+
+    notifyButton?.addEventListener('click', async () => {
+      await sendMessage({ type: 'dev-notify' });
+      setStatus('Dev notification requested.');
+    });
+
+    clearButton?.addEventListener('click', async () => {
+      navigator.clearAppBadge?.();
+      await sendMessage({ type: 'clear-badge' });
+      setStatus('Badge cleared.');
+    });
+
+    originSelect?.addEventListener('change', async () => {
+      const preset = originSelect.value && VALID_PRESETS.has(originSelect.value)
+        ? originSelect.value
+        : DEFAULT_PRESET;
+
+      if (preset === 'custom') {
+        customOriginWrap?.classList.remove('hidden');
+        customOriginInput?.focus();
+        return;
+      }
+
+      state.originPreset = preset;
+      state.origin = ORIGIN_PRESETS[preset];
+      savePreset(preset);
+      updateDisplay();
+      await sendMessage({ type: 'set-data-origin', origin: state.origin, preset });
+      setStatus(`Data source set to ${describeOrigin(state.origin)}.`);
+    });
+
+    if (customOriginInput) {
+      const applyCustomOrigin = async () => {
+        const normalized = saveCustomOrigin(customOriginInput.value);
+        state.originPreset = 'custom';
+        state.origin = normalized;
+        savePreset('custom');
+        updateDisplay();
+        await sendMessage({ type: 'set-data-origin', origin: state.origin, preset: 'custom' });
+        setStatus(normalized ? `Data source set to Custom (${normalized}).` : 'Custom origin cleared.');
+      };
+
+      customOriginInput.addEventListener('change', applyCustomOrigin);
+      customOriginInput.addEventListener('blur', applyCustomOrigin);
+      customOriginInput.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          applyCustomOrigin();
+        }
+      });
+    }
   };
+
+  /* ------------------------------------------------------------------------ */
+  /* Initialisation                                                           */
+  /* ------------------------------------------------------------------------ */
 
   const init = async () => {
     bindEvents();
@@ -362,17 +342,16 @@
     }
 
     navigator.serviceWorker.addEventListener('message', handleMessage);
+
+    const preset = loadPreset();
+    state.originPreset = preset;
+    state.origin = preset === 'custom' ? loadCustomOrigin() : (ORIGIN_PRESETS[preset] ?? ORIGIN_PRESETS.remote);
     updateDisplay();
-    setStatus(`Data source set to ${describeOrigin(state.origin)}`);
+    setStatus(`Data source set to ${describeOrigin(state.origin)}.`);
 
     await ensureServiceWorker();
-    await sendMessage({ type: 'set-data-origin', origin: state.origin });
+    await sendMessage({ type: 'set-data-origin', origin: state.origin, preset: state.originPreset });
     await sendMessage({ type: 'request-state' });
-    await updateMode();
-
-    if (!modeIntervalId) {
-      modeIntervalId = window.setInterval(updateMode, 15000);
-    }
   };
 
   init().catch(err => {

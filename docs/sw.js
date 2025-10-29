@@ -1,13 +1,32 @@
+// ------------------------------------------------------------
+// Service worker
+//
+// Responsibilities:
+//   • persist the last selected zone + timestamp in KV-like caches
+//   • perform foreground (fallback) polls when asked
+//   • display notifications when Web Push payloads arrive
+//   • relay messages between the SW and any open clients
+//
+// The worker does *not* schedule Periodic Background Sync anymore – Web Push is
+// the primary notification mechanism.  We keep the fallback poll logic so that
+// the dev harness and browsers without push support (e.g. iOS) still receive
+// updates whenever they bring the page back into focus.
+// ------------------------------------------------------------
+
 const STATE_CACHE = 'spot-state-v1';
 const STATE_URL = '/__spot/state';
 const PERIOD_MS = 15 * 60 * 1000; // 15 minutes
 const JITTER_MS = 5 * 60 * 1000; // up to 5 minutes jitter
-const ICON_URL = '/assets/favicon/notification-icon.png';
-const BADGE_URL = '/assets/favicon/notification-badge.png';
-const SYNC_TAG = 'spot-latest-sync';
+const ICON_URL = new URL('/assets/favicon/notification-icon.png', self.location.origin).href;
+const BADGE_URL = new URL('/assets/favicon/notification-badge.png', self.location.origin).href;
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
-const DEFAULT_DATA_ORIGIN = self.location && LOCAL_HOSTS.has(self.location.hostname) ? 'https://spot.utilitarian.io' : '';
+const REMOTE_DATA_ORIGIN = 'https://spot.utilitarian.io';
+const DEFAULT_DATA_ORIGIN = self.location && LOCAL_HOSTS.has(self.location.hostname) ? REMOTE_DATA_ORIGIN : '';
+const DEFAULT_ORIGIN_PRESET = DEFAULT_DATA_ORIGIN ? (DEFAULT_DATA_ORIGIN === REMOTE_DATA_ORIGIN ? 'remote' : 'custom') : 'local';
+const VALID_ORIGIN_PRESETS = new Set(['remote', 'local', 'custom']);
 let dataOrigin = DEFAULT_DATA_ORIGIN;
+let originPreset = DEFAULT_ORIGIN_PRESET;
+const NGROK_HOST_PATTERN = /(?:\.ngrok(?:-free)?\.app|\.ngrok\.io)$/i;
 
 self.addEventListener('install', event => {
   event.waitUntil(self.skipWaiting());
@@ -28,12 +47,71 @@ async function postToClients(message) {
   }
 }
 
+function sanitizeOriginValue(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+  let candidate = trimmed;
+  if (!/^https?:\/\//i.test(candidate)) {
+    candidate = `https://${candidate}`;
+  }
+  try {
+    const url = new URL(candidate);
+    return url.origin;
+  } catch (_) {
+    return '';
+  }
+}
+
+function resolvePresetForOrigin(origin, requestedPreset) {
+  if (requestedPreset && VALID_ORIGIN_PRESETS.has(requestedPreset)) {
+    if (requestedPreset === 'local') {
+      return 'local';
+    }
+    if (requestedPreset === 'remote') {
+      return origin === REMOTE_DATA_ORIGIN ? 'remote' : (origin ? 'custom' : 'local');
+    }
+    if (requestedPreset === 'custom') {
+      return 'custom';
+    }
+  }
+  if (!origin) {
+    return 'local';
+  }
+  if (origin === REMOTE_DATA_ORIGIN) {
+    return 'remote';
+  }
+  return 'custom';
+}
+
+function shouldBypassNgrokWarning(origin) {
+  if (typeof origin !== 'string' || !origin) {
+    return false;
+  }
+  try {
+    const hostname = new URL(origin).hostname;
+    return NGROK_HOST_PATTERN.test(hostname);
+  } catch (_) {
+    return false;
+  }
+}
+
 async function getState() {
-  const base = { zone: null, lastTimestamp: null, origin: DEFAULT_DATA_ORIGIN };
+  const base = {
+    zone: null,
+    lastTimestamp: null,
+    origin: DEFAULT_DATA_ORIGIN,
+    originPreset: DEFAULT_ORIGIN_PRESET
+  };
   const cache = await openStateCache();
   const match = await cache.match(STATE_URL);
   if (!match) {
     dataOrigin = base.origin;
+    originPreset = base.originPreset;
     return base;
   }
   let stored;
@@ -41,23 +119,61 @@ async function getState() {
     stored = await match.json();
   } catch (_) {
     dataOrigin = base.origin;
+    originPreset = base.originPreset;
     return base;
   }
   const zone = typeof stored.zone === 'string' && stored.zone ? stored.zone : null;
   const lastTimestamp = typeof stored.lastTimestamp === 'string' ? stored.lastTimestamp : null;
-  const origin = typeof stored.origin === 'string' ? stored.origin : DEFAULT_DATA_ORIGIN;
+  const rawOrigin = typeof stored.origin === 'string' ? stored.origin : DEFAULT_DATA_ORIGIN;
+  const origin = rawOrigin === ''
+    ? ''
+    : sanitizeOriginValue(rawOrigin) || DEFAULT_DATA_ORIGIN;
+  const preset = resolvePresetForOrigin(origin, typeof stored.originPreset === 'string' ? stored.originPreset : null);
   dataOrigin = origin;
-  return { zone, lastTimestamp, origin };
+  originPreset = preset;
+  return { zone, lastTimestamp, origin, originPreset: preset };
 }
 
-async function setState(state) {
+async function setState(partial) {
   const cache = await openStateCache();
+  const current = await getState();
+
+  // The worker stores state as a single JSON blob.  `partial` lets callers
+  // update just the properties they care about, so we merge it with the
+  // currently cached value before writing it back.
+  let originValue = current.origin;
+  if (Object.prototype.hasOwnProperty.call(partial, 'origin')) {
+    const incoming = partial.origin;
+    if (typeof incoming === 'string') {
+      originValue = incoming === '' ? '' : (sanitizeOriginValue(incoming) || originValue);
+    } else if (incoming === null) {
+      originValue = '';
+    }
+  }
+
+  let presetInput = Object.prototype.hasOwnProperty.call(partial, 'originPreset') ? partial.originPreset : current.originPreset;
+  let resolvedPreset = resolvePresetForOrigin(originValue, presetInput);
+  if (resolvedPreset === 'local') {
+    originValue = '';
+  } else if (resolvedPreset === 'remote') {
+    originValue = REMOTE_DATA_ORIGIN;
+  }
+  resolvedPreset = resolvePresetForOrigin(originValue, resolvedPreset);
+
   const next = {
-    zone: typeof state.zone === 'string' && state.zone ? state.zone : null,
-    lastTimestamp: typeof state.lastTimestamp === 'string' ? state.lastTimestamp : null,
-    origin: typeof state.origin === 'string' ? state.origin : (dataOrigin ?? DEFAULT_DATA_ORIGIN)
+    zone: Object.prototype.hasOwnProperty.call(partial, 'zone')
+      ? (typeof partial.zone === 'string' && partial.zone ? partial.zone : null)
+      : current.zone,
+    lastTimestamp: Object.prototype.hasOwnProperty.call(partial, 'lastTimestamp')
+      ? (typeof partial.lastTimestamp === 'string' ? partial.lastTimestamp : null)
+      : current.lastTimestamp,
+    origin: originValue,
+    originPreset: resolvedPreset
   };
+
   dataOrigin = next.origin;
+  originPreset = next.originPreset;
+
   await cache.put(STATE_URL, new Response(JSON.stringify(next), {
     headers: { 'Content-Type': 'application/json' }
   }));
@@ -70,9 +186,23 @@ function computeJitter() {
 
 async function fetchLatest(zone) {
   const origin = typeof dataOrigin === 'string' ? dataOrigin : DEFAULT_DATA_ORIGIN;
-  const base = origin || '';
-  const url = `${base}/electricity/${encodeURIComponent(zone)}/latest/index.json`;
-  const response = await fetch(url, { cache: 'no-store' });
+  const base = origin || self.location.origin;
+  const url = new URL(`/electricity/${encodeURIComponent(zone)}/latest/index.json`, base);
+  const bypassNgrok = shouldBypassNgrokWarning(origin);
+  if (bypassNgrok) {
+    url.searchParams.set('ngrok-skip-browser-warning', 'true');
+  }
+  const init = {
+    cache: 'no-store',
+    mode: origin ? 'cors' : 'same-origin',
+    credentials: 'omit'
+  };
+  if (bypassNgrok) {
+    init.headers = {
+      'ngrok-skip-browser-warning': 'true'
+    };
+  }
+  const response = await fetch(url.toString(), init);
   if (!response.ok) {
     throw new Error(`Failed to fetch latest for ${zone}`);
   }
@@ -132,14 +262,12 @@ async function handleSync({ skipDelay = false } = {}) {
     }
     const previousTimestamp = state.lastTimestamp || null;
     if (!previousTimestamp) {
-      state.lastTimestamp = latestTimestamp;
-      const updated = await setState(state);
+      const updated = await setState({ zone: state.zone, lastTimestamp: latestTimestamp });
       await postToClients({ type: 'state-updated', state: updated });
       return;
     }
     if (latestTimestamp > previousTimestamp) {
-      state.lastTimestamp = latestTimestamp;
-      const updated = await setState(state);
+      const updated = await setState({ zone: state.zone, lastTimestamp: latestTimestamp });
       await announce(state.zone, latestTimestamp);
       await postToClients({ type: 'state-updated', state: updated });
     }
@@ -148,10 +276,77 @@ async function handleSync({ skipDelay = false } = {}) {
   }
 }
 
-self.addEventListener('periodicsync', event => {
-  if (event.tag === SYNC_TAG) {
-    event.waitUntil(handleSync());
+async function handlePushEvent(event) {
+  let payload = {};
+  let rawPayload = null;
+  if (event.data) {
+    try {
+      rawPayload = await event.data.text();
+    } catch (_) {
+      rawPayload = null;
+    }
   }
+
+  if (rawPayload) {
+    try {
+      payload = JSON.parse(rawPayload);
+    } catch (_) {
+      payload = { title: rawPayload };
+    }
+  }
+
+  const zone = typeof payload.zone === 'string' ? payload.zone.toUpperCase() : null;
+  const timestamp = typeof payload.timestamp === 'string' ? payload.timestamp : null;
+  const title = payload.title || (zone ? `New day-ahead prices for ${zone}!` : 'New day-ahead prices available!');
+  const body = payload.body || 'Tap to view the latest values.';
+  const targetUrl = payload.url || (zone ? `/explorer/?zones=${encodeURIComponent(zone)}` : '/explorer/');
+
+  const options = {
+    body,
+    icon: payload.icon || ICON_URL,
+    badge: payload.badge || BADGE_URL,
+    data: { url: targetUrl, zone, timestamp },
+    tag: payload.tag || (zone ? `spot-zone-${zone}` : 'spot-prices'),
+    renotify: payload.renotify ?? true,
+    requireInteraction: payload.requireInteraction ?? false,
+    color: payload.color || '#0f172a'
+  };
+
+  if (payload.image) {
+    options.image = payload.image;
+  }
+  if (timestamp) {
+    const tsMs = Date.parse(timestamp);
+    if (!Number.isNaN(tsMs)) {
+      options.timestamp = tsMs;
+    }
+  }
+
+  if (zone && timestamp) {
+    try {
+      const state = await getState();
+      if (state.zone === zone) {
+        const updated = await setState({ zone, lastTimestamp: timestamp });
+        await postToClients({ type: 'state-updated', state: updated });
+      }
+    } catch (err) {
+      console.warn('Failed to persist push timestamp', err);
+    }
+  }
+
+  await self.registration.showNotification(title, options);
+  if (self.registration.setAppBadge) {
+    self.registration.setAppBadge(1).catch(() => {});
+  }
+  await postToClients({ type: 'new-prices', zone, timestamp });
+}
+
+self.addEventListener('push', event => {
+  event.waitUntil(handlePushEvent(event));
+});
+
+self.addEventListener('pushsubscriptionchange', event => {
+  event.waitUntil(postToClients({ type: 'subscription-change' }));
 });
 
 self.addEventListener('notificationclick', event => {
@@ -184,10 +379,14 @@ self.addEventListener('message', event => {
       event.waitUntil((async () => {
         const current = await getState();
         const zone = typeof data.zone === 'string' && data.zone ? data.zone : null;
+        const newLast = typeof data.lastTimestamp === 'string'
+          ? data.lastTimestamp
+          : (zone && current.zone === zone ? current.lastTimestamp : null);
         const state = {
           zone,
-          lastTimestamp: zone && current.zone === zone ? current.lastTimestamp : null,
-          origin: current.origin
+          lastTimestamp: newLast,
+          origin: current.origin,
+          originPreset: current.originPreset
         };
         const updated = await setState(state);
         if (!zone && self.registration.clearAppBadge) {
@@ -214,12 +413,14 @@ self.addEventListener('message', event => {
       break;
     case 'set-data-origin':
       event.waitUntil((async () => {
-        const origin = typeof data.origin === 'string' ? data.origin : DEFAULT_DATA_ORIGIN;
         const current = await getState();
+        const originInput = typeof data.origin === 'string' ? data.origin : current.origin;
+        const presetInput = typeof data.preset === 'string' ? data.preset : current.originPreset;
         const updated = await setState({
           zone: current.zone,
           lastTimestamp: current.lastTimestamp,
-          origin
+          origin: originInput,
+          originPreset: presetInput
         });
         await postToClients({ type: 'state-updated', state: updated });
       })());

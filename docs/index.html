@@ -19,13 +19,15 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Stylized electricity price chart over a dark background with Utilitarian Spot branding." />
+    <meta property="og:image:alt"
+        content="Stylized electricity price chart over a dark background with Utilitarian Spot branding." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Day‑Ahead Energy Prices – Nordics & EU | Utilitarian Spot" />
     <meta name="twitter:description"
         content="Free, stable energy price backend with machine‑readable JSON for EU & Nordic day‑ahead markets." />
     <meta name="twitter:image" content="https://spot.utilitarian.io/assets/images/social-card-index.png" />
-    <meta name="twitter:image:alt" content="Stylized electricity price chart over a dark background with Utilitarian Spot branding." />
+    <meta name="twitter:image:alt"
+        content="Stylized electricity price chart over a dark background with Utilitarian Spot branding." />
 
     <link rel="icon" type="image/png" href="/assets/favicon/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
@@ -34,6 +36,11 @@
     <meta name="apple-mobile-web-app-title" content="Spot" />
     <link rel="manifest" href="/assets/favicon/site.webmanifest" />
     <meta name="theme-color" content="#0f172a" />
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
 
     <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -51,25 +58,262 @@
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- highlight.js -->
-    <link rel="preload"
-        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css" as="style"
-        onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css"
+        as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
-        <link rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css">
     </noscript>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
     <script defer src="/assets/spot-notify.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        window.SPOT_COUNTRIES = window.SPOT_COUNTRIES || [
+            { code: 'SE', name: 'Sweden', zones: ['SE1', 'SE2', 'SE3', 'SE4'] },
+            { code: 'DK', name: 'Denmark', zones: ['DK1', 'DK2'] },
+            { code: 'NO', name: 'Norway', zones: ['NO1', 'NO2', 'NO3', 'NO4', 'NO5'] },
+            { code: 'FI', name: 'Finland', zones: ['FI'] },
+            { code: 'DE', name: 'Germany', zones: ['DE_LU'] },
+            { code: 'AT', name: 'Austria', zones: ['AT'] },
+            { code: 'FR', name: 'France', zones: ['FR'] },
+            { code: 'BE', name: 'Belgium', zones: ['BE'] },
+            { code: 'NL', name: 'Netherlands', zones: ['NL'] },
+            { code: 'PL', name: 'Poland', zones: ['PL'] },
+            { code: 'EE', name: 'Estonia', zones: ['EE'] },
+            { code: 'LT', name: 'Lithuania', zones: ['LT'] },
+            { code: 'LV', name: 'Latvia', zones: ['LV'] },
+            { code: 'IT', name: 'Italy', zones: ['IT-NORTH', 'IT-CENTRE_NORTH', 'IT-CENTRE_SOUTH', 'IT-SOUTH', 'IT-SICILY', 'IT-SARDINIA', 'IT-CALABRIA'] },
+            { code: 'CH', name: 'Switzerland', zones: ['CH'] },
+            { code: 'ES', name: 'Spain', zones: ['ES'] },
+            { code: 'PT', name: 'Portugal', zones: ['PT'] },
+            { code: 'SK', name: 'Slovakia', zones: ['SK'] },
+            { code: 'SI', name: 'Slovenia', zones: ['SI'] },
+            { code: 'CZ', name: 'Czech Republic', zones: ['CZ'] },
+            { code: 'HU', name: 'Hungary', zones: ['HU'] },
+            { code: 'HR', name: 'Croatia', zones: ['HR'] },
+            { code: 'RO', name: 'Romania', zones: ['RO'] },
+            { code: 'RS', name: 'Serbia', zones: ['RS'] },
+            { code: 'BG', name: 'Bulgaria', zones: ['BG'] },
+            { code: 'GR', name: 'Greece', zones: ['GR'] },
+        ];
+
+        document.addEventListener('alpine:init', () => {
+            if (window.persist && typeof Alpine.$persist !== 'function') {
+                Alpine.plugin(window.persist);
+            }
+
+            const countries = window.SPOT_COUNTRIES || [];
+            const buildTimezoneList = () => {
+
+                return [
+                    'UTC',
+                    'Europe/Stockholm',
+                    'Europe/Oslo',
+                    'Europe/Copenhagen',
+                    'Europe/Helsinki',
+                    'Europe/Berlin',
+                    'Europe/Paris',
+                    'Europe/Brussels',
+                    'Europe/Vienna',
+                    'Europe/Rome',
+                    'Europe/Madrid',
+                    'Europe/Lisbon',
+                    'Europe/Warsaw',
+                    'Europe/Prague',
+                    'Europe/Budapest',
+                    'Europe/Zagreb',
+                    'Europe/Bucharest',
+                    'Europe/Sofia',
+                    'Europe/Athens',
+                    'Atlantic/Reykjavik',
+                    'America/New_York',
+                    'America/Los_Angeles'
+                ];
+            };
+
+            const inferCountry = () => {
+                const locale = (navigator.language || navigator.userLanguage || '').toUpperCase();
+                const match = countries.find(c => locale.includes(c.code));
+                return match ? match.code : 'SE';
+            };
+
+            const inferTimezone = () => {
+                try {
+                    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+                } catch (_) {
+                    return 'UTC';
+                }
+            };
+
+            const timezoneList = buildTimezoneList();
+            const defaultCountry = inferCountry();
+            const defaultTimezone = inferTimezone();
+            if (defaultTimezone && !timezoneList.includes(defaultTimezone)) {
+                timezoneList.unshift(defaultTimezone);
+            }
+
+            const persistOr = (key, fallback) => {
+                if (Alpine.$persist) {
+                    return Alpine.$persist(fallback).as(key);
+                }
+                return fallback;
+            };
+
+            Alpine.data('spotSettingsFlyout', () => ({
+                open: false,
+                suppressEmit: false,
+                countries,
+                timezoneList,
+                selectedCountry: persistOr('spot.settings.country', defaultCountry),
+                selectedZone: persistOr('spot.settings.zone', null),
+                selectedTimezone: persistOr('spot.settings.timezone', defaultTimezone),
+                get currentCountry() {
+                    return this.countries.find(c => c.code === this.selectedCountry) || null;
+                },
+                get currentZones() {
+                    const country = this.currentCountry;
+                    return country ? country.zones : [];
+                },
+                get countryLabel() {
+                    const country = this.currentCountry;
+                    return country ? `${country.name} (${country.code})` : 'Choose a country';
+                },
+                get zoneLabel() {
+                    if (!this.selectedZone) return 'Choose a zone';
+                    const country = this.currentCountry;
+                    return country ? `${this.selectedZone} · ${country.name}` : this.selectedZone;
+                },
+                formatTimezone(tz) {
+                    return tz.replace(/_/g, ' ');
+                },
+                setOpen(value) {
+                    if (this.open === value) return;
+                    this.open = value;
+                    window.dispatchEvent(new CustomEvent(value ? 'spot-settings-opened' : 'spot-settings-closed'));
+                },
+                openPanel() {
+                    this.setOpen(true);
+                },
+                closePanel() {
+                    this.setOpen(false);
+                },
+                ensureZone() {
+                    const zones = this.currentZones;
+                    if (!zones.includes(this.selectedZone)) {
+                        this.selectedZone = zones[0] || null;
+                    }
+                },
+                emitSelection(reason) {
+                    if (this.suppressEmit) return;
+                    document.dispatchEvent(new CustomEvent('spot:selection-change', {
+                        detail: {
+                            country: this.selectedCountry,
+                            zone: this.selectedZone,
+                            timezone: this.selectedTimezone,
+                            reason,
+                            source: 'alpine'
+                        }
+                    }));
+                },
+                emitTimezone(reason) {
+                    if (this.suppressEmit) return;
+                    document.dispatchEvent(new CustomEvent('spot:timezone-change', {
+                        detail: {
+                            timezone: this.selectedTimezone,
+                            reason,
+                            source: 'alpine'
+                        }
+                    }));
+                },
+                applyExternalSelection(detail = {}) {
+                    this.suppressEmit = true;
+                    if (detail.country) this.selectedCountry = detail.country;
+                    if (detail.zone) this.selectedZone = detail.zone;
+                    if (detail.timezone) this.selectedTimezone = detail.timezone;
+                    this.ensureZone();
+                    this.suppressEmit = false;
+                },
+                init() {
+                    if (!this.selectedCountry) {
+                        this.selectedCountry = defaultCountry;
+                    }
+                    this.ensureZone();
+                    if (!this.selectedTimezone) {
+                        this.selectedTimezone = defaultTimezone;
+                    }
+
+                    window.spotSettingsPanel = {
+                        open: () => this.setOpen(true),
+                        close: () => this.setOpen(false)
+                    };
+
+                    window.addEventListener('spot:open-settings', () => this.setOpen(true));
+                    window.addEventListener('spot:close-settings', () => this.setOpen(false));
+
+                    document.addEventListener('spot:selection-change', event => {
+                        const detail = event.detail || {};
+                        if (detail.source === 'alpine') return;
+                        this.applyExternalSelection(detail);
+                    });
+
+                    document.addEventListener('spot:timezone-change', event => {
+                        const detail = event.detail || {};
+                        if (detail.source === 'alpine') return;
+                        if (detail.timezone) {
+                            this.suppressEmit = true;
+                            this.selectedTimezone = detail.timezone;
+                            this.suppressEmit = false;
+                        }
+                    });
+
+                    this.$watch('selectedCountry', () => {
+                        this.ensureZone();
+                        this.emitSelection('country');
+                    });
+                    this.$watch('selectedZone', () => {
+                        this.emitSelection('zone');
+                    });
+                    this.$watch('selectedTimezone', () => {
+                        this.emitTimezone('timezone');
+                    });
+
+                    this.emitSelection('init');
+                    this.emitTimezone('init');
+                }
+            }));
+        });
+
+    </script>
 </head>
 
-<body>
-    <header class="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-40">
-        <nav class="mx-auto flex max-w-6xl items-center justify-center gap-6 px-4 py-3 text-sm font-semibold text-slate-600">
+<body x-data="spotSettingsFlyout()" x-init="init()">
+    <header class="relative bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-40">
+        <nav
+            class="mx-auto flex max-w-6xl items-center justify-center gap-6 px-4 py-3 text-sm font-semibold text-slate-600">
             <a href="/" class="hover:text-slate-900 text-slate-900">Latest Prices</a>
             <a href="/explorer/" class="hover:text-slate-900">Historical Explorer</a>
             <a href="/developer/" class="hover:text-slate-900">Developer</a>
+            <button id="spot-settings-button-desktop" type="button"
+                class="ml-auto hidden lg:inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                aria-label="Open notification settings" title="Notification settings" @click="openPanel()">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" class="h-5 w-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+            </button>
         </nav>
     </header>
+    <button id="spot-settings-button-mobile" type="button"
+        class="fixed top-4 right-4 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-lg transition hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 lg:hidden"
+        aria-label="Open notification settings" title="Notification settings" @click="openPanel()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+            class="h-5 w-5">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        </svg>
+    </button>
     <main>
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 text-center lg:pt-16">
             <h1 class="mx-auto max-w-4xl font-display text-5xl font-medium tracking-tight text-slate-900 sm:text-7xl">
@@ -85,7 +329,8 @@
                 </span>
             </h1>
             <p class="mx-auto mt-6 max-w-2xl text-lg tracking-tight text-slate-700">
-                Access historical and day ahead prices of energy across the EU. Simple, fast and free. Build your own dashboards or apps on top of the same data—no billing, no rate limits.
+                Access historical and day ahead prices of energy across the EU. Simple, fast and free. Build your own
+                dashboards or apps on top of the same data—no billing, no rate limits.
             </p>
 
         </div>
@@ -102,13 +347,11 @@
             </h2>
 
             <div class="my-4 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
-                <label class="text-sm text-slate-700" for="country-select">Country</label>
-                <select id="country-select" x-model="country" @change="onCountryChange"
-                    class="rounded-md border border-slate-300 px-3 py-2 text-sm min-w-0 w-full sm:w-auto touch-manipulation">
-                    <template x-for="c in countries" :key="c.code">
-                        <option :value="c.code" x-text="c.name" :selected="c.code === country"></option>
-                    </template>
-                </select>
+                <span class="text-sm text-slate-700">Country</span>
+                <button id="spot-country-display" type="button"
+                    class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 min-w-0 w-full sm:w-auto touch-manipulation"
+                    aria-label="Choose country and zone" @click="openPanel()" x-text="countryLabel">
+                </button>
             </div>
 
             <div class="my-8">
@@ -122,24 +365,7 @@
                 Explore historical prices →
             </a>
         </div>
-        <div id="spot-notification-panel" class="mx-auto mt-10 max-w-3xl px-4 sm:px-6 lg:px-8">
-            <div class="rounded-xl border border-yellow-200 bg-white shadow-sm p-6">
-                <h3 class="text-lg font-semibold text-slate-900">New price notifications (in development)</h3>
-                <p class="text-sm text-slate-700 mb-4">
-                    Pick a bidding zone and we’ll tap you when tomorrow’s prices land. Works today on Chrome/Edge/Android, and falls back to refreshing whenever you reopen the site elsewhere.
-                </p>
-                <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-                    <label class="sr-only" for="spot-zone-select">Bidding zone</label>
-                    <select id="spot-zone-select" class="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"></select>
-                    <button id="spot-notify-button" type="button"
-                        class="rounded-md bg-slate-900 text-white px-4 py-2 text-sm font-semibold hover:bg-slate-700">
-                        Enable alerts
-                    </button>
-                </div>
-                <p id="spot-notify-status" class="mt-3 text-xs text-slate-600"></p>
-                <p id="spot-notify-last" class="mt-1 text-xs text-slate-500"></p>
-            </div>
-        </div>
+        <!--
         <div id="spot-dev-panel" class="hidden mx-auto mt-6 max-w-3xl px-4 sm:px-6 lg:px-8">
             <div class="rounded-xl border border-slate-300 bg-slate-900 p-6 text-slate-100 shadow-lg">
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -150,10 +376,6 @@
                     <button id="dev-request-permission" type="button"
                         class="rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-white">
                         Request Notification Permission
-                    </button>
-                    <button id="dev-trigger-poll" type="button"
-                        class="rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400">
-                        Trigger Poll (Dev)
                     </button>
                     <button id="dev-force-notify" type="button"
                         class="rounded-md bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400">
@@ -170,9 +392,18 @@
                         class="rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 focus:outline-none focus:ring focus:ring-slate-500">
                         <option value="remote">Remote (spot.utilitarian.io)</option>
                         <option value="local">Local (served files)</option>
+                        <option value="custom">Custom…</option>
                     </select>
                 </div>
-                <dl class="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                <div id="dev-data-origin-custom-wrap" class="mt-2 hidden w-full">
+                    <label for="dev-data-origin-custom"
+                        class="text-xs uppercase tracking-wide text-slate-400 block mb-1">Custom
+                        origin (https://…)</label>
+                    <input id="dev-data-origin-custom" type="text" inputmode="url"
+                        class="w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring focus:ring-slate-500"
+                        placeholder="https://your-ngrok-subdomain.ngrok.app" autocomplete="off" spellcheck="false" />
+                </div>
+                <dl class="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                         <dt class="text-xs uppercase tracking-wide text-slate-400">Zone</dt>
                         <dd id="dev-state-zone" class="mt-1 text-base font-semibold text-white">—</dd>
@@ -182,10 +413,6 @@
                         <dd id="dev-state-timestamp" class="mt-1 text-base font-semibold text-white">—</dd>
                     </div>
                     <div>
-                        <dt class="text-xs uppercase tracking-wide text-slate-400">Mode</dt>
-                        <dd id="dev-state-mode" class="mt-1 text-base font-semibold text-white">—</dd>
-                    </div>
-                    <div>
                         <dt class="text-xs uppercase tracking-wide text-slate-400">Data Source</dt>
                         <dd id="dev-state-origin" class="mt-1 text-base font-semibold text-white">—</dd>
                     </div>
@@ -193,192 +420,241 @@
                 <p id="dev-status" class="mt-4 text-xs text-slate-300"></p>
             </div>
         </div>
+      
+        <
         <div class="mx-auto max-w-6xl mt-16 text-center">
-            <a href="/developer/" class="inline-flex items-center justify-center rounded-full py-3 px-6 text-sm font-semibold border border-slate-300 text-slate-800 hover:bg-slate-100">
+            <a href="/developer/"
+                class="inline-flex items-center justify-center rounded-full py-3 px-6 text-sm font-semibold border border-slate-300 text-slate-800 hover:bg-slate-100">
                 Developer documentation →
             </a>
         </div>
+          -->
 
-                    <!-- Available Zones -->
-                    <div class="p-6 border-b border-slate-200/60">
-                        <div class="bg-white rounded-xl shadow-md border border-slate-200">
-                            <div class="px-6 py-4 border-b border-slate-100">
-                                <h4 class="font-semibold text-slate-900">Available Zones</h4>
-                                <p class="text-sm text-slate-600">Each endpoint uses the zone codes below.</p>
-                            </div>
-                            <div class="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                                <div>
-                                    <h5 class="font-medium text-slate-700 mb-2">Nordics</h5>
-                                    <div class="space-y-1 text-slate-700">
-                                        <div>🇸🇪 <strong>Sweden:</strong> SE1, SE2, SE3, SE4</div>
-                                        <div>🇩🇰 <strong>Denmark:</strong> DK1, DK2</div>
-                                        <div>🇳🇴 <strong>Norway:</strong> NO1, NO2, NO3, NO4, NO5</div>
-                                        <div>🇫🇮 <strong>Finland:</strong> FI</div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h5 class="font-medium text-slate-700 mb-2">Central Europe</h5>
-                                    <div class="space-y-1 text-slate-700">
-                                        <div>🇩🇪 <strong>Germany:</strong> DE_LU</div>
-                                        <div>🇦🇹 <strong>Austria:</strong> AT</div>
-                                        <div>🇫🇷 <strong>France:</strong> FR</div>
-                                        <div>🇧🇪 <strong>Belgium:</strong> BE</div>
-                                        <div>🇳🇱 <strong>Netherlands:</strong> NL</div>
-                                        <div>🇵🇱 <strong>Poland:</strong> PL</div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h5 class="font-medium text-slate-700 mb-2">Eastern &amp; Southern</h5>
-                                    <div class="space-y-1 text-slate-700">
-                                        <div>🇪🇪 <strong>Estonia:</strong> EE</div>
-                                        <div>🇱🇹 <strong>Lithuania:</strong> LT</div>
-                                        <div>🇱🇻 <strong>Latvia:</strong> LV</div>
-                                        <div>🇮🇹 <strong>Italy:</strong> IT-NORTH, IT-CENTRE_NORTH, IT-CENTRE_SOUTH, IT-SOUTH, IT-SICILY, IT-SARDINIA, IT-CALABRIA</div>
-                                        <div>🇪🇸 <strong>Spain:</strong> ES</div>
-                                        <div>🇵🇹 <strong>Portugal:</strong> PT</div>
-                                    </div>
-                                </div>
-                            </div>
+        <!-- Available Zones -->
+        <div class="p-6 border-b border-slate-200/60">
+            <div class="bg-white rounded-xl shadow-md border border-slate-200">
+                <div class="px-6 py-4 border-b border-slate-100">
+                    <h4 class="font-semibold text-slate-900">Available Zones</h4>
+                    <p class="text-sm text-slate-600">Each endpoint uses the zone codes below.</p>
+                </div>
+                <div class="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <h5 class="font-medium text-slate-700 mb-2">Nordics</h5>
+                        <div class="space-y-1 text-slate-700">
+                            <div>🇸🇪 <strong>Sweden:</strong> SE1, SE2, SE3, SE4</div>
+                            <div>🇩🇰 <strong>Denmark:</strong> DK1, DK2</div>
+                            <div>🇳🇴 <strong>Norway:</strong> NO1, NO2, NO3, NO4, NO5</div>
+                            <div>🇫🇮 <strong>Finland:</strong> FI</div>
                         </div>
                     </div>
+                    <div>
+                        <h5 class="font-medium text-slate-700 mb-2">Central Europe</h5>
+                        <div class="space-y-1 text-slate-700">
+                            <div>🇩🇪 <strong>Germany:</strong> DE_LU</div>
+                            <div>🇦🇹 <strong>Austria:</strong> AT</div>
+                            <div>🇫🇷 <strong>France:</strong> FR</div>
+                            <div>🇧🇪 <strong>Belgium:</strong> BE</div>
+                            <div>🇳🇱 <strong>Netherlands:</strong> NL</div>
+                            <div>🇵🇱 <strong>Poland:</strong> PL</div>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="font-medium text-slate-700 mb-2">Eastern &amp; Southern</h5>
+                        <div class="space-y-1 text-slate-700">
+                            <div>🇪🇪 <strong>Estonia:</strong> EE</div>
+                            <div>🇱🇹 <strong>Lithuania:</strong> LT</div>
+                            <div>🇱🇻 <strong>Latvia:</strong> LV</div>
+                            <div>🇮🇹 <strong>Italy:</strong> IT-NORTH, IT-CENTRE_NORTH, IT-CENTRE_SOUTH, IT-SOUTH,
+                                IT-SICILY, IT-SARDINIA, IT-CALABRIA</div>
+                            <div>🇪🇸 <strong>Spain:</strong> ES</div>
+                            <div>🇵🇹 <strong>Portugal:</strong> PT</div>
+                        </div>
+                    </div>
+                </div>
             </div>
+        </div>
+        </div>
 
-            <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    if (window.hljs?.highlightAll) {
-                        window.hljs.highlightAll();
-                    }
-                });
-            </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                if (window.hljs?.highlightAll) {
+                    window.hljs.highlightAll();
+                }
+            });
+        </script>
 
+        <script>
+            function priceExplorer() {
+                const DEFAULT_COUNTRIES = window.SPOT_COUNTRIES || [
+                    { code: 'SE', name: 'Sweden', zones: ['SE1', 'SE2', 'SE3', 'SE4'] },
+                    { code: 'DK', name: 'Denmark', zones: ['DK1', 'DK2'] },
+                    { code: 'NO', name: 'Norway', zones: ['NO1', 'NO2', 'NO3', 'NO4', 'NO5'] },
+                    { code: 'FI', name: 'Finland', zones: ['FI'] },
+                    { code: 'DE', name: 'Germany', zones: ['DE_LU'] },
+                    { code: 'AT', name: 'Austria', zones: ['AT'] },
+                    { code: 'FR', name: 'France', zones: ['FR'] },
+                    { code: 'BE', name: 'Belgium', zones: ['BE'] },
+                    { code: 'NL', name: 'Netherlands', zones: ['NL'] },
+                    { code: 'PL', name: 'Poland', zones: ['PL'] },
+                    { code: 'EE', name: 'Estonia', zones: ['EE'] },
+                    { code: 'LT', name: 'Lithuania', zones: ['LT'] },
+                    { code: 'LV', name: 'Latvia', zones: ['LV'] },
+                    { code: 'IT', name: 'Italy', zones: ['IT-NORTH', 'IT-CENTRE_NORTH', 'IT-CENTRE_SOUTH', 'IT-SOUTH', 'IT-SICILY', 'IT-SARDINIA', 'IT-CALABRIA'] },
+                    { code: 'CH', name: 'Switzerland', zones: ['CH'] },
+                    { code: 'ES', name: 'Spain', zones: ['ES'] },
+                    { code: 'PT', name: 'Portugal', zones: ['PT'] },
+                    { code: 'SK', name: 'Slovakia', zones: ['SK'] },
+                    { code: 'SI', name: 'Slovenia', zones: ['SI'] },
+                    { code: 'CZ', name: 'Czech Republic', zones: ['CZ'] },
+                    { code: 'HU', name: 'Hungary', zones: ['HU'] },
+                    { code: 'HR', name: 'Croatia', zones: ['HR'] },
+                    { code: 'RO', name: 'Romania', zones: ['RO'] },
+                    { code: 'RS', name: 'Serbia', zones: ['RS'] },
+                    { code: 'BG', name: 'Bulgaria', zones: ['BG'] },
+                    { code: 'GR', name: 'Greece', zones: ['GR'] },
 
-
-
-            <script>
-                function priceExplorer() {
-                    return {
-                        countries: [
-                            { code: 'SE', name: 'Sweden', zones: ['SE1', 'SE2', 'SE3', 'SE4'] },
-                            { code: 'DK', name: 'Denmark', zones: ['DK1', 'DK2'] },
-                            { code: 'NO', name: 'Norway', zones: ['NO1', 'NO2', 'NO3', 'NO4', 'NO5'] },
-                            { code: 'FI', name: 'Finland', zones: ['FI'] },
-                            { code: 'DE', name: 'Germany', zones: ['DE_LU'] },
-                            { code: 'AT', name: 'Austria', zones: ['AT'] },
-                            { code: 'FR', name: 'France', zones: ['FR'] },
-                            { code: 'BE', name: 'Belgium', zones: ['BE'] },
-                            { code: 'NL', name: 'Netherlands', zones: ['NL'] },
-                            { code: 'PL', name: 'Poland', zones: ['PL'] },
-                            { code: 'EE', name: 'Estonia', zones: ['EE'] },
-                            { code: 'LT', name: 'Lithuania', zones: ['LT'] },
-                            { code: 'LV', name: 'Latvia', zones: ['LV'] },
-                            { code: 'IT', name: 'Italy', zones: ['IT-NORTH', 'IT-CENTRE_NORTH', 'IT-CENTRE_SOUTH', 'IT-SOUTH', 'IT-SICILY', 'IT-SARDINIA', 'IT-CALABRIA'] },
-                            { code: 'CH', name: 'Switzerland', zones: ['CH'] },
-                            { code: 'ES', name: 'Spain', zones: ['ES'] },
-                            { code: 'PT', name: 'Portugal', zones: ['PT'] },
-                            { code: 'SK', name: 'Slovakia', zones: ['SK'] },
-                            { code: 'SI', name: 'Slovenia', zones: ['SI'] },
-                            { code: 'CZ', name: 'Czech Republic', zones: ['CZ'] },
-                            { code: 'HU', name: 'Hungary', zones: ['HU'] },
-                            { code: 'HR', name: 'Croatia', zones: ['HR'] },
-                            { code: 'RO', name: 'Romania', zones: ['RO'] },
-                            { code: 'RS', name: 'Serbia', zones: ['RS'] },
-                            { code: 'BG', name: 'Bulgaria', zones: ['BG'] },
-                            { code: 'GR', name: 'Greece', zones: ['GR'] },
-
-                        ],
-                        country: 'SE',
-                        chart: null,
-                        get currentCountry() { return this.countries.find(c => c.code === this.country); },
-                        get currentCountryName() { return this.currentCountry?.name || '—'; },
-                        init() {
-                            // load from localStorage or infer from navigator
-                            const saved = localStorage.getItem('spot.country');
-                            if (saved) {
-                                this.country = saved;
-                            } else {
-                                const locale = (navigator.language || navigator.userLanguage || '').toUpperCase();
-                                const match = this.countries.find(c => locale.includes(c.code));
-                                if (match) this.country = match.code;
+                ];
+                return {
+                    countries: window.SPOT_COUNTRIES,
+                    country: 'SE',
+                    timezone: 'UTC',
+                    chart: null,
+                    get currentCountry() { return this.countries.find(c => c.code === this.country); },
+                    get currentCountryName() { return this.currentCountry?.name || '—'; },
+                    init() {
+                        // load from localStorage or infer from navigator
+                        const saved = localStorage.getItem('spot.country');
+                        if (saved) {
+                            this.country = saved;
+                        } else {
+                            const locale = (navigator.language || navigator.userLanguage || '').toUpperCase();
+                            const match = this.countries.find(c => locale.includes(c.code));
+                            if (match) this.country = match.code;
+                        }
+                        const storedTz = localStorage.getItem('spot.timezone');
+                        if (storedTz) {
+                            this.timezone = storedTz;
+                        } else {
+                            try {
+                                const inferredTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                                if (inferredTz) this.timezone = inferredTz;
+                            } catch (_) {
+                                this.timezone = 'UTC';
                             }
-                            // Ensure Alpine.js updates the select box
-                            this.$nextTick(() => {
-                                this.renderAllZones();
-                            });
-                        },
-                        onCountryChange() {
-                            localStorage.setItem('spot.country', this.country);
+                        }
+                        document.addEventListener('spot:selection-change', (event) => {
+                            const next = event?.detail?.country;
+                            if (next && next !== this.country) {
+                                this.country = next;
+                                this.$nextTick(() => { this.renderAllZones(); });
+                            }
+                        });
+                        document.addEventListener('spot:timezone-change', (event) => {
+                            const nextTz = event?.detail?.timezone;
+                            if (nextTz && nextTz !== this.timezone) {
+                                this.timezone = nextTz;
+                                this.$nextTick(() => { this.renderAllZones(); });
+                            }
+                        });
+                        // Render chart once Alpine has hydrated the DOM
+                        this.$nextTick(() => {
                             this.renderAllZones();
-                        },
-                        buildOptsAll(getWidth, getHeight, seriesDefs) {
-                            return {
-                                title: null,
-                                width: getWidth(),
-                                height: getHeight(),
-                                legend: { show: false },
-                                series: [
-                                    {},
-                                    ...seriesDefs.map(s => ({
-                                        label: s.label,
-                                        stroke: s.color,
-                                        width: 2,
-                                        paths: uPlot.paths.stepped({ align: -1 })
-                                    }))
-                                ],
-                                axes: [
-                                    {
-                                        label: "Time (UTC)",
-                                        values: (u, vals) => {
-                                            let lastDay = null;
-                                            return vals.map(v => {
-                                                const d = new Date(v * 1000);
-                                                const day = d.getUTCDate();
-                                                const isMidnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0;
-                                                let out;
-                                                if (lastDay === null || day !== lastDay || isMidnight) {
-                                                    out = d.toLocaleDateString('en-GB', { month: 'short', day: '2-digit', timeZone: 'UTC' });
-                                                } else {
-                                                    out = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
-                                                }
-                                                lastDay = day;
-                                                return out;
-                                            });
-                                        },
-                                        grid: { show: true }
-                                    },
-                                    { label: "Price (€/MWh)", grid: { show: true } }
-                                ],
-                                scales: { x: { time: true } },
-                                cursor: { show: true, x: true, y: true, points: { show: false } },
-                                hooks: {
-                                    init: [
-                                        (u) => {
-                                            const tt = document.createElement('div');
-                                            tt.id = 'uplot-tooltip-all';
-                                            tt.className = 'absolute z-10 rounded-md bg-slate-900/90 text-white text-xs px-2 py-1 shadow-lg pointer-events-none hidden';
-                                            tt.style.transform = 'translate(12px, -24px)';
-                                            u.over.appendChild(tt);
-                                            u._ttAll = tt;
-                                            u.over.addEventListener('mouseleave', () => tt.classList.add('hidden'));
-                                            // persist series defs for color/labels in tooltip
-                                            u._seriesDefs = seriesDefs;
-                                        }
-                                    ],
-                                    setCursor: [
-                                        (u) => {
-                                            const tt = u._ttAll;
-                                            if (!tt) return;
-                                            const { left, top, idx } = u.cursor;
-                                            if (left == null || top == null || idx == null || left < 0 || top < 0 || left > u.bbox.width || top > u.bbox.height) {
-                                                tt.classList.add('hidden');
-                                                return;
+                        });
+                    },
+                    buildOptsAll(getWidth, getHeight, seriesDefs) {
+                        const tz = this.timezone || 'UTC';
+                        const toLocalDate = (epochSeconds) => {
+                            const utcDate = new Date(epochSeconds * 1000);
+                            try {
+                                const localeString = utcDate.toLocaleString('en-US', { timeZone: tz });
+                                return new Date(localeString);
+                            } catch (_) {
+                                return utcDate;
+                            }
+                        };
+                        const formatTimestamp = (epochSeconds) => {
+                            const utcDate = new Date(epochSeconds * 1000);
+                            return utcDate.toLocaleString('en-GB', {
+                                timeZone: tz,
+                                year: 'numeric',
+                                month: 'short',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false,
+                                timeZoneName: 'short'
+                            });
+                        };
+                        return {
+                            title: null,
+                            width: getWidth(),
+                            height: getHeight(),
+                            legend: { show: false },
+                            series: [
+                                {},
+                                ...seriesDefs.map(s => ({
+                                    label: s.label,
+                                    stroke: s.color,
+                                    width: 2,
+                                    paths: uPlot.paths.stepped({ align: -1 })
+                                }))
+                            ],
+                            axes: [
+                                {
+                                    label: `Time (${tz})`,
+                                    values: (u, vals) => {
+                                        let lastDay = null;
+                                        return vals.map(v => {
+                                            const local = toLocalDate(v);
+                                            const day = local.getDate();
+                                            const isMidnight = local.getHours() === 0 && local.getMinutes() === 0;
+                                            let out;
+                                            if (lastDay === null || day !== lastDay || isMidnight) {
+                                                out = local.toLocaleDateString('en-GB', { month: 'short', day: '2-digit' });
+                                            } else {
+                                                out = local.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
                                             }
+                                            lastDay = day;
+                                            return out;
+                                        });
+                                    },
+                                    grid: { show: true }
+                                },
+                                { label: "Price (€/MWh)", grid: { show: true } }
+                            ],
+                            scales: { x: { time: true } },
+                            cursor: { show: true, x: true, y: true, points: { show: false } },
+                            hooks: {
+                                init: [
+                                    (u) => {
+                                        const tt = document.createElement('div');
+                                        tt.id = 'uplot-tooltip-all';
+                                        tt.className = 'absolute z-10 rounded-md bg-slate-900/90 text-white text-xs px-2 py-1 shadow-lg pointer-events-none hidden';
+                                        tt.style.transform = 'translate(12px, -24px)';
+                                        u.over.appendChild(tt);
+                                        u._ttAll = tt;
+                                        u._formatTimestamp = formatTimestamp;
+                                        u.over.addEventListener('mouseleave', () => tt.classList.add('hidden'));
+                                        // persist series defs for color/labels in tooltip
+                                        u._seriesDefs = seriesDefs;
+                                    }
+                                ],
+                                setCursor: [
+                                    (u) => {
+                                        const tt = u._ttAll;
+                                        if (!tt) return;
+                                        const { left, top, idx } = u.cursor;
+                                        if (left == null || top == null || idx == null || left < 0 || top < 0 || left > u.bbox.width || top > u.bbox.height) {
+                                            tt.classList.add('hidden');
+                                            return;
+                                        }
 
-                                            const xArr = u.data[0];
-                                            const i = Math.max(0, Math.min(idx, xArr.length - 1));
-                                            const xVal = xArr[i];
-                                            const d = new Date(xVal * 1000);
-                                            const timeStr = d.toLocaleString('en-GB', {
-                                                timeZone: 'UTC',
+                                        const xArr = u.data[0];
+                                        const i = Math.max(0, Math.min(idx, xArr.length - 1));
+                                        const xVal = xArr[i];
+                                        const formatter = u._formatTimestamp || ((value) => {
+                                            const fallback = new Date(value * 1000);
+                                            return fallback.toLocaleString('en-GB', {
                                                 year: 'numeric',
                                                 month: 'short',
                                                 day: '2-digit',
@@ -386,179 +662,86 @@
                                                 minute: '2-digit',
                                                 hour12: false
                                             });
+                                        });
+                                        const timeStr = formatter(xVal);
 
-                                            let html = `${timeStr} UTC`;
-                                            for (let s = 1; s < u.data.length; s++) {
-                                                const val = u.data[s][i];
-                                                const def = u._seriesDefs ? u._seriesDefs[s - 1] : null;
-                                                const label = def?.label || `S${s}`;
-                                                const color = def?.color || '#999';
-                                                const valStr = val == null ? '—' : `${val.toFixed(2)} €/MWh`;
-                                                html += `<br><span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:2px;margin-right:6px"></span>${label}: <span class=\"font-semibold\">${valStr}</span>`;
-                                            }
-
-                                            tt.innerHTML = html;
-                                            tt.style.left = `${left}px`;
-                                            tt.style.top = `${top}px`;
-                                            tt.classList.remove('hidden');
+                                        let html = `${timeStr}`;
+                                        for (let s = 1; s < u.data.length; s++) {
+                                            const val = u.data[s][i];
+                                            const def = u._seriesDefs ? u._seriesDefs[s - 1] : null;
+                                            const label = def?.label || `S${s}`;
+                                            const color = def?.color || '#999';
+                                            const valStr = val == null ? '—' : `${val.toFixed(2)} €/MWh`;
+                                            html += `<br><span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:2px;margin-right:6px"></span>${label}: <span class=\"font-semibold\">${valStr}</span>`;
                                         }
-                                    ]
-                                }
-                            };
-                        },
-                        async renderAllZones() {
-                            const el = document.getElementById('priceChartAll');
-                            const getWidth = () => el.getBoundingClientRect().width;
-                            const getHeight = () => el.getBoundingClientRect().height;
 
-                            const zones = this.currentCountry?.zones || [];
-                            const colors = ['#059669', '#2563eb', '#f59e0b', '#dc2626', '#7c3aed', '#0ea5e9', '#16a34a'];
-                            try {
-                                console.time('renderAllZones');
-                                const responses = await Promise.all(
-                                    zones.map(z => fetch(`/electricity/${z}/latest/index.json`).then(r => r.json()))
-                                );
-
-                                const tsSet = new Set();
-                                responses.forEach(arr => arr.forEach(it => tsSet.add(Math.floor(new Date(it.timestamp).getTime() / 1000))));
-                                const xTimes = Array.from(tsSet).sort((a, b) => a - b);
-
-                                const seriesY = responses.map(arr => {
-                                    const m = new Map(arr.map(it => [Math.floor(new Date(it.timestamp).getTime() / 1000), parseFloat(it.value)]));
-                                    return xTimes.map(t => (m.has(t) ? m.get(t) : null));
-                                });
-
-                                const seriesDefs = zones.map((z, i) => ({ label: z, color: colors[i % colors.length] }));
-                                const opts = this.buildOptsAll(getWidth, getHeight, seriesDefs);
-
-                                if (this._resizeObs) {
-                                    try { this._resizeObs.disconnect(); } catch { }
-                                }
-                                if (this.chart) this.chart.destroy();
-                                this.chart = new uPlot(opts, [xTimes, ...seriesY], el);
-
-                                // Observe container size and keep chart in sync
-                                this._resizeObs = new ResizeObserver(() => {
-                                    if (this.chart) {
-                                        this.chart.setSize({ width: getWidth(), height: getHeight() });
+                                        tt.innerHTML = html;
+                                        tt.style.left = `${left}px`;
+                                        tt.style.top = `${top}px`;
+                                        tt.classList.remove('hidden');
                                     }
-                                });
-                                this._resizeObs.observe(el);
-                                console.timeEnd('renderAllZones');
-
-                                // datapoints log
-                                const perSeriesCounts = seriesY.map(a => a.reduce((acc, v) => acc + (v == null ? 0 : 1), 0));
-                                const totalPoints = perSeriesCounts.reduce((a, b) => a + b, 0);
-                                console.log('renderAllZones datapoints:', {
-                                    xLen: xTimes.length,
-                                    perSeries: zones.map((z, i) => ({ zone: z, points: perSeriesCounts[i] })),
-                                    total: totalPoints,
-                                });
-                            } catch (e) {
-                                el.innerHTML = '<p class="text-center text-red-600">Error loading price data.</p>';
-                                console.error('all-zones', e);
+                                ]
                             }
-                        }
-                    };
-                }
+                        };
+                    },
+                    async renderAllZones() {
+                        const el = document.getElementById('priceChartAll');
+                        const getWidth = () => el.getBoundingClientRect().width;
+                        const getHeight = () => el.getBoundingClientRect().height;
 
-                function buildOptsAll(getWidth, getHeight, seriesDefs) {
-                    return {
-                        title: null,
-                        width: getWidth(),
-                        height: getHeight(),
-                        legend: { show: false },
-                        series: [
-                            {},
-                            ...seriesDefs.map(s => ({
-                                label: s.label,
-                                stroke: s.color,
-                                width: 2,
-                                paths: uPlot.paths.stepped({ align: -1 })
-                            }))
-                        ],
-                        axes: [
-                            {
-                                label: "Time (UTC)",
-                                values: (u, vals) => {
-                                    let lastDay = null;
-                                    return vals.map(v => {
-                                        const d = new Date(v * 1000);
-                                        const day = d.getUTCDate();
-                                        const isMidnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0;
-                                        let out;
-                                        if (lastDay === null || day !== lastDay || isMidnight) {
-                                            out = d.toLocaleDateString('en-GB', { month: 'short', day: '2-digit', timeZone: 'UTC' });
-                                        } else {
-                                            out = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
-                                        }
-                                        lastDay = day;
-                                        return out;
-                                    });
-                                },
-                                grid: { show: true }
-                            },
-                            { label: "Price (€/MWh)", grid: { show: true } }
-                        ],
-                        scales: { x: { time: true } },
-                        cursor: { show: true, x: true, y: true, points: { show: false } },
-                        hooks: {
-                            init: [
-                                (u) => {
-                                    const tt = document.createElement('div');
-                                    tt.id = 'uplot-tooltip-all';
-                                    tt.className = 'absolute z-10 rounded-md bg-slate-900/90 text-white text-xs px-2 py-1 shadow-lg pointer-events-none hidden';
-                                    tt.style.transform = 'translate(12px, -24px)';
-                                    u.over.appendChild(tt);
-                                    u._ttAll = tt;
-                                    u.over.addEventListener('mouseleave', () => tt.classList.add('hidden'));
+                        const zones = this.currentCountry?.zones || [];
+                        const colors = ['#059669', '#2563eb', '#f59e0b', '#dc2626', '#7c3aed', '#0ea5e9', '#16a34a'];
+                        try {
+                            console.time('renderAllZones');
+                            const responses = await Promise.all(
+                                zones.map(z => fetch(`/electricity/${z}/latest/index.json`).then(r => r.json()))
+                            );
+
+                            const tsSet = new Set();
+                            responses.forEach(arr => arr.forEach(it => tsSet.add(Math.floor(new Date(it.timestamp).getTime() / 1000))));
+                            const xTimes = Array.from(tsSet).sort((a, b) => a - b);
+
+                            const seriesY = responses.map(arr => {
+                                const m = new Map(arr.map(it => [Math.floor(new Date(it.timestamp).getTime() / 1000), parseFloat(it.value)]));
+                                return xTimes.map(t => (m.has(t) ? m.get(t) : null));
+                            });
+
+                            const seriesDefs = zones.map((z, i) => ({ label: z, color: colors[i % colors.length] }));
+                            const opts = this.buildOptsAll(getWidth, getHeight, seriesDefs);
+
+                            if (this._resizeObs) {
+                                try { this._resizeObs.disconnect(); } catch { }
+                            }
+                            if (this.chart) this.chart.destroy();
+                            this.chart = new uPlot(opts, [xTimes, ...seriesY], el);
+
+                            // Observe container size and keep chart in sync
+                            this._resizeObs = new ResizeObserver(() => {
+                                if (this.chart) {
+                                    this.chart.setSize({ width: getWidth(), height: getHeight() });
                                 }
-                            ],
-                            setCursor: [
-                                (u) => {
-                                    const tt = u._ttAll;
-                                    if (!tt) return;
-                                    const { left, top, idx } = u.cursor;
-                                    if (left == null || top == null || idx == null || left < 0 || top < 0 || left > u.bbox.width || top > u.bbox.height) {
-                                        tt.classList.add('hidden');
-                                        return;
-                                    }
+                            });
+                            this._resizeObs.observe(el);
+                            console.timeEnd('renderAllZones');
 
-                                    const xArr = u.data[0];
-                                    const i = Math.max(0, Math.min(idx, xArr.length - 1));
-                                    const xVal = xArr[i];
-                                    const d = new Date(xVal * 1000);
-                                    const timeStr = d.toLocaleString('en-GB', {
-                                        timeZone: 'UTC',
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        hour12: false
-                                    });
-
-                                    let html = `${timeStr} UTC`;
-                                    for (let s = 1; s < u.data.length; s++) {
-                                        const val = u.data[s][i];
-                                        const label = seriesDefs[s - 1]?.label || `S${s}`;
-                                        const color = seriesDefs[s - 1]?.color || '#999';
-                                        const valStr = val == null ? '—' : `${val.toFixed(2)} €/MWh`;
-                                        html += `<br><span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:2px;margin-right:6px"></span>${label}: <span class="font-semibold">${valStr}</span>`;
-                                    }
-
-                                    tt.innerHTML = html;
-                                    tt.style.left = `${left}px`;
-                                    tt.style.top = `${top}px`;
-                                    tt.classList.remove('hidden');
-                                }
-                            ]
+                            // datapoints log
+                            const perSeriesCounts = seriesY.map(a => a.reduce((acc, v) => acc + (v == null ? 0 : 1), 0));
+                            const totalPoints = perSeriesCounts.reduce((a, b) => a + b, 0);
+                            console.log('renderAllZones datapoints:', {
+                                xLen: xTimes.length,
+                                perSeries: zones.map((z, i) => ({ zone: z, points: perSeriesCounts[i] })),
+                                total: totalPoints,
+                            });
+                        } catch (e) {
+                            el.innerHTML = '<p class="text-center text-red-600">Error loading price data.</p>';
+                            console.error('all-zones', e);
                         }
-                    };
-                }
+                    }
+                };
+            }
 
-                document.addEventListener('DOMContentLoaded', () => { });
-            </script>
+            document.addEventListener('DOMContentLoaded', () => { });
+        </script>
     </main>
 
     <footer class="bg-slate-50 mt-16">
@@ -574,12 +757,14 @@
                 <br>
                 <p class="my-2">
                     Source data is reused from the
-                    <a href="https://transparency.entsoe.eu" class="text-slate-900 font-semibold hover:text-slate-700" target="_blank" rel="noopener noreferrer">
+                    <a href="https://transparency.entsoe.eu" class="text-slate-900 font-semibold hover:text-slate-700"
+                        target="_blank" rel="noopener noreferrer">
                         ENTSO-E Transparency Platform
                     </a>
                     under the terms of CC BY 4.0.
                 </p>
-                <p class="my-2">Time is in UTC and prices are in €/MWh.</p>
+                <p class="my-2">Prices are in €/MWh. Timestamps default to UTC unless you change the preference in
+                    settings.</p>
             </div>
             <div
                 class="flex flex-col items-center border-t border-slate-400/10 py-10 sm:flex-row-reverse sm:justify-between">
@@ -601,8 +786,95 @@
     </footer>
     <div class="bg-slate-900 text-slate-300 text-xs py-6">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center leading-relaxed">
-            Disclaimer: data is collected from ENTSO-E and provided on a best-effort basis without guarantees of accuracy, completeness, or availability. Utilitarian Spot offers no service-level agreement and accepts no liability for losses or damages resulting from use of the data or service interruptions.
+            Disclaimer: data is collected from ENTSO-E and provided on a best-effort basis without guarantees of
+            accuracy, completeness, or availability. Utilitarian Spot offers no service-level agreement and accepts no
+            liability for losses or damages resulting from use of the data or service interruptions.
         </div>
+    </div>
+    <div id="spot-settings-panel" x-cloak x-show="open" class="fixed inset-0 z-50">
+        <div id="spot-settings-backdrop" class="absolute inset-0 bg-slate-900/60" @click="closePanel()"
+            x-transition.opacity></div>
+        <aside id="spot-settings-menu"
+            class="absolute right-0 top-0 h-full w-full max-w-xs sm:max-w-sm bg-slate-900 text-slate-100 shadow-2xl flex flex-col transform"
+            x-transition:enter="transform transition ease-out duration-300"
+            x-transition:enter-start="translate-x-full opacity-0" x-transition:enter-end="translate-x-0 opacity-100"
+            x-transition:leave="transform transition ease-in duration-200"
+            x-transition:leave-start="translate-x-0 opacity-100" x-transition:leave-end="translate-x-full opacity-0"
+            @click.stop>
+            <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                <div>
+                    <p class="text-xs uppercase tracking-wide text-slate-400">App Settings</p>
+                    <h2 class="text-lg font-semibold">Personalise Spot</h2>
+                </div>
+                <button id="spot-settings-close" type="button"
+                    class="rounded-md bg-white/10 p-1 text-slate-200 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    aria-label="Close settings" @click="closePanel()">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="h-5 w-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto px-5 py-6 space-y-6 text-sm">
+                <section class="space-y-4">
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-semibold text-slate-100">Preferred country</h3>
+                        <p class="text-xs text-slate-400">Used for charts and default bidding zone suggestions.</p>
+                        <label for="spot-settings-country" class="sr-only">Preferred country</label>
+                        <select id="spot-settings-country" data-alpine-managed="true" x-model="selectedCountry"
+                            class="w-full rounded-md border border-white/10 bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-500">
+                            <template x-for="country in countries" :key="country.code">
+                                <option :value="country.code" x-text="`${country.name} (${country.code})`"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-semibold text-slate-100">Preferred bidding zone</h3>
+                        <p class="text-xs text-slate-400">Notifications target this zone and the homepage chart
+                            highlights it.</p>
+                        <label for="spot-settings-zone" class="sr-only">Preferred bidding zone</label>
+                        <select id="spot-settings-zone" data-alpine-managed="true" x-model="selectedZone"
+                            class="w-full rounded-md border border-white/10 bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-500">
+                            <template x-for="zone in currentZones" :key="zone">
+                                <option :value="zone" x-text="zone"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-semibold text-slate-100">Preferred timezone</h3>
+                        <p class="text-xs text-slate-400">Choose how timestamps are shown across Spot.</p>
+                        <label for="spot-settings-timezone" class="sr-only">Preferred timezone</label>
+                        <select id="spot-settings-timezone" data-alpine-managed="true" x-model="selectedTimezone"
+                            class="w-full rounded-md border border-white/10 bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-500">
+                            <template x-for="tz in timezoneList" :key="tz">
+                                <option :value="tz" x-text="formatTimezone(tz)"></option>
+                            </template>
+                        </select>
+                    </div>
+                </section>
+                <div class="flex items-start gap-3 rounded-lg border border-white/10 bg-slate-800 px-4 py-3">
+                    <input id="spot-notify-toggle" type="checkbox"
+                        class="mt-1 h-4 w-4 rounded border-slate-400 bg-slate-900 text-emerald-500 focus:ring-emerald-400" />
+                    <div>
+                        <label for="spot-notify-toggle" class="text-sm font-medium text-slate-100">Enable price update
+                            notifications</label>
+                        <p class="text-xs text-slate-400">Notifications will be sent for the selected bidding zone when
+                            new day-ahead prices are published.</p>
+
+
+                        <span class="flex mt-2"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke-width="1.5" stroke="currentColor" class="size-6 mr-2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                            </svg>
+                            We are currently developing this feature. Stay tuned! </span>
+
+
+                    </div>
+                </div>
+                <p id="spot-settings-note" class="text-xs text-amber-300 hidden"></p>
+            </div>
+        </aside>
     </div>
     <script defer src="/app.js"></script>
 </body>
