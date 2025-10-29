@@ -55,6 +55,8 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css" />
     </noscript>
     <script defer src="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.iife.js"></script>
+    <!-- Alpine Persist plugin (load before Alpine) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- highlight.js -->
@@ -65,7 +67,13 @@
     </noscript>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
     <script defer src="/assets/spot-notify.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
+
+    <!--
+    TODO:s
+    When updating the page the country is not persisted correctly.
+    Choosing UTC does not give UTC timestamps in the graphs.
+    
+    -->
     <script>
         window.SPOT_COUNTRIES = window.SPOT_COUNTRIES || [
             { code: 'SE', name: 'Sweden', zones: ['SE1', 'SE2', 'SE3', 'SE4'] },
@@ -102,6 +110,30 @@
             }
 
             const countries = window.SPOT_COUNTRIES || [];
+            const countryMap = new Map();
+            const zoneCountryMap = new Map();
+            const zoneOptions = [];
+            const buildZoneLabel = (zone, countryName) => `${zone} · ${countryName}`;
+
+            countries.forEach(country => {
+                countryMap.set(country.code, country);
+                const zones = Array.isArray(country.zones) ? country.zones : [];
+                zones.forEach(zone => {
+                    zoneCountryMap.set(zone, country.code);
+                    zoneOptions.push({
+                        code: zone,
+                        country: country.code,
+                        label: buildZoneLabel(zone, country.name)
+                    });
+                });
+            });
+
+            const findCountryByCode = code => countryMap.get(code) || null;
+            const findCountryByZone = zone => {
+                const code = zoneCountryMap.get(zone);
+                return code ? findCountryByCode(code) : null;
+            };
+
             const buildTimezoneList = () => {
 
                 return [
@@ -123,10 +155,7 @@
                     'Europe/Zagreb',
                     'Europe/Bucharest',
                     'Europe/Sofia',
-                    'Europe/Athens',
-                    'Atlantic/Reykjavik',
-                    'America/New_York',
-                    'America/Los_Angeles'
+                    'Europe/Athens'
                 ];
             };
 
@@ -151,11 +180,92 @@
                 timezoneList.unshift(defaultTimezone);
             }
 
-            const persistOr = (key, fallback) => {
-                if (Alpine.$persist) {
-                    return Alpine.$persist(fallback).as(key);
+            const decodeStoredValue = raw => {
+                if (raw == null || raw === '') return null;
+                try {
+                    return JSON.parse(raw);
+                } catch (_) {
+                    return raw;
                 }
-                return fallback;
+            };
+
+            const readStoredValue = (key, legacyKeys = []) => {
+                const read = candidate => {
+                    try {
+                        return decodeStoredValue(localStorage.getItem(candidate));
+                    } catch (_) {
+                        return null;
+                    }
+                };
+                const primary = read(key);
+                if (primary !== null && primary !== undefined && primary !== '') return primary;
+                for (const legacy of legacyKeys) {
+                    const legacyValue = read(legacy);
+                    if (legacyValue !== null && legacyValue !== undefined && legacyValue !== '') {
+                        return legacyValue;
+                    }
+                }
+                return null;
+            };
+
+            const writeStoredValue = (key, value, legacyKeys = []) => {
+                try {
+                    if (value === null || value === undefined || value === '') {
+                        localStorage.removeItem(key);
+                        legacyKeys.forEach(candidate => localStorage.removeItem(candidate));
+                    } else {
+                        localStorage.setItem(key, JSON.stringify(value));
+                        legacyKeys.forEach(candidate => localStorage.removeItem(candidate));
+                    }
+                } catch (_) {
+                    // ignore storage failures (private browsing, etc.)
+                }
+            };
+
+            const STORAGE_KEYS = {
+                country: 'spot.settings.country',
+                zone: 'spot.settings.zone',
+                timezone: 'spot.settings.timezone',
+                notificationZone: 'spot.notifications.zone'
+            };
+
+            const LEGACY_KEYS = {
+                country: 'spot.country',
+                zone: 'spot.zone',
+                timezone: 'spot.timezone'
+            };
+
+            const storedCountry = readStoredValue(STORAGE_KEYS.country, [LEGACY_KEYS.country]);
+            const storedZone = readStoredValue(STORAGE_KEYS.zone, [LEGACY_KEYS.zone]);
+            const storedTimezone = readStoredValue(STORAGE_KEYS.timezone, [LEGACY_KEYS.timezone]);
+            const storedNotificationZone = readStoredValue(STORAGE_KEYS.notificationZone, []);
+
+            let initialCountry = (typeof storedCountry === 'string' && storedCountry) ? storedCountry : defaultCountry;
+            const initialTimezone = (typeof storedTimezone === 'string' && storedTimezone) ? storedTimezone : defaultTimezone;
+            let initialZone = (typeof storedZone === 'string' && storedZone) ? storedZone : null;
+            let initialNotificationZone = (typeof storedNotificationZone === 'string' && storedNotificationZone) ? storedNotificationZone : null;
+            const countryExists = code => countryMap.has(code);
+            if (!countryExists(initialCountry)) {
+                initialCountry = defaultCountry;
+            }
+            if (initialZone && !zoneCountryMap.has(initialZone)) {
+                initialZone = null;
+            }
+            if (initialNotificationZone && !zoneCountryMap.has(initialNotificationZone)) {
+                initialNotificationZone = null;
+            }
+            if (!initialNotificationZone) {
+                initialNotificationZone = initialZone || (zoneOptions[0]?.code || null);
+            }
+
+            window.SPOT_STORAGE = {
+                readStoredValue,
+                writeStoredValue,
+                STORAGE_KEYS,
+                LEGACY_KEYS,
+                zoneOwners: Object.fromEntries(zoneCountryMap),
+                zoneOptions: zoneOptions.map(opt => ({ ...opt })),
+                notificationZone: initialNotificationZone
             };
 
             Alpine.data('spotSettingsFlyout', () => ({
@@ -163,15 +273,13 @@
                 suppressEmit: false,
                 countries,
                 timezoneList,
-                selectedCountry: persistOr('spot.settings.country', defaultCountry),
-                selectedZone: persistOr('spot.settings.zone', null),
-                selectedTimezone: persistOr('spot.settings.timezone', defaultTimezone),
+                zoneOptions,
+                selectedCountry: initialCountry,
+                selectedZone: initialZone,
+                selectedTimezone: initialTimezone,
+                notificationZone: initialNotificationZone,
                 get currentCountry() {
-                    return this.countries.find(c => c.code === this.selectedCountry) || null;
-                },
-                get currentZones() {
-                    const country = this.currentCountry;
-                    return country ? country.zones : [];
+                    return findCountryByCode(this.selectedCountry);
                 },
                 get countryLabel() {
                     const country = this.currentCountry;
@@ -179,11 +287,20 @@
                 },
                 get zoneLabel() {
                     if (!this.selectedZone) return 'Choose a zone';
-                    const country = this.currentCountry;
-                    return country ? `${this.selectedZone} · ${country.name}` : this.selectedZone;
+                    const option = this.zoneOptions.find(o => o.code === this.selectedZone);
+                    if (option) {
+                        if (option.label) return option.label;
+                        const owner = findCountryByZone(option.code);
+                        return owner ? buildZoneLabel(option.code, owner.name) : option.code;
+                    }
+                    return 'Choose a zone';
                 },
                 formatTimezone(tz) {
-                    return tz.replace(/_/g, ' ');
+                    if (!tz) return '';
+                    const parts = tz.split('/');
+                    const name = parts.pop()?.replace(/_/g, ' ') || tz;
+                    const region = parts.length ? parts[0].replace(/_/g, ' ') : '';
+                    return region && region.toUpperCase() !== 'UTC' ? `${name} (${region})` : name;
                 },
                 setOpen(value) {
                     if (this.open === value) return;
@@ -196,10 +313,19 @@
                 closePanel() {
                     this.setOpen(false);
                 },
-                ensureZone() {
-                    const zones = this.currentZones;
-                    if (!zones.includes(this.selectedZone)) {
-                        this.selectedZone = zones[0] || null;
+                persistSelection() {
+                    writeStoredValue(STORAGE_KEYS.country, this.selectedCountry, [LEGACY_KEYS.country]);
+                    const zoneValue = zoneCountryMap.has(this.selectedZone) ? this.selectedZone : null;
+                    writeStoredValue(STORAGE_KEYS.zone, zoneValue, [LEGACY_KEYS.zone]);
+                },
+                persistTimezone() {
+                    writeStoredValue(STORAGE_KEYS.timezone, this.selectedTimezone, [LEGACY_KEYS.timezone]);
+                },
+                persistNotification() {
+                    if (this.notificationZone && zoneCountryMap.has(this.notificationZone)) {
+                        writeStoredValue(STORAGE_KEYS.notificationZone, this.notificationZone, []);
+                    } else {
+                        writeStoredValue(STORAGE_KEYS.notificationZone, null, []);
                     }
                 },
                 emitSelection(reason) {
@@ -224,22 +350,79 @@
                         }
                     }));
                 },
+                emitNotification(reason) {
+                    if (this.suppressEmit) return;
+                    const zones = this.notificationZone ? [this.notificationZone] : [];
+                    document.dispatchEvent(new CustomEvent('spot:notification-zone-change', {
+                        detail: {
+                            zones,
+                            primary: this.notificationZone || null,
+                            reason,
+                            source: 'alpine'
+                        }
+                    }));
+                },
                 applyExternalSelection(detail = {}) {
                     this.suppressEmit = true;
-                    if (detail.country) this.selectedCountry = detail.country;
-                    if (detail.zone) this.selectedZone = detail.zone;
-                    if (detail.timezone) this.selectedTimezone = detail.timezone;
-                    this.ensureZone();
+                    if (detail.country && countryExists(detail.country)) {
+                        this.selectedCountry = detail.country;
+                    }
+                    if (detail.zone !== undefined) {
+                        if (detail.zone === null) {
+                            this.selectedZone = null;
+                        } else if (zoneCountryMap.has(detail.zone)) {
+                            this.selectedZone = detail.zone;
+                        }
+                    }
+                    if (detail.timezone) {
+                        this.selectedTimezone = detail.timezone;
+                        if (!this.timezoneList.includes(detail.timezone)) {
+                            this.timezoneList.unshift(detail.timezone);
+                        }
+                    }
+                    this.ensureValidSelections();
                     this.suppressEmit = false;
+                    this.persistSelection();
+                    this.persistTimezone();
+                    this.persistNotification();
+                    this.emitNotification('external-sync');
                 },
-                init() {
-                    if (!this.selectedCountry) {
+                ensureValidSelections() {
+                    if (!countryExists(this.selectedCountry)) {
                         this.selectedCountry = defaultCountry;
                     }
-                    this.ensureZone();
-                    if (!this.selectedTimezone) {
+                    const currentZones = findCountryByCode(this.selectedCountry)?.zones || [];
+                    if (this.selectedZone && !zoneCountryMap.has(this.selectedZone)) {
+                        this.selectedZone = null;
+                    }
+                    const owner = this.selectedZone ? zoneCountryMap.get(this.selectedZone) : null;
+                    if (!owner || owner !== this.selectedCountry) {
+                        this.selectedZone = currentZones.length ? currentZones[0] : null;
+                    }
+                    if (!this.selectedZone && currentZones.length === 0 && this.zoneOptions.length) {
+                        this.selectedZone = this.zoneOptions[0].code;
+                    }
+                    if (this.selectedTimezone) {
+                        if (!this.timezoneList.includes(this.selectedTimezone)) {
+                            this.timezoneList.unshift(this.selectedTimezone);
+                        }
+                    } else {
                         this.selectedTimezone = defaultTimezone;
                     }
+                    if (this.notificationZone && !zoneCountryMap.has(this.notificationZone)) {
+                        this.notificationZone = null;
+                    }
+                    if (!this.notificationZone && this.zoneOptions.length) {
+                        this.notificationZone = this.zoneOptions[0].code;
+                    }
+                },
+                init() {
+                    this.suppressEmit = true;
+                    this.ensureValidSelections();
+                    this.persistSelection();
+                    this.persistTimezone();
+                     this.persistNotification();
+                    this.suppressEmit = false;
 
                     window.spotSettingsPanel = {
                         open: () => this.setOpen(true),
@@ -261,23 +444,71 @@
                         if (detail.timezone) {
                             this.suppressEmit = true;
                             this.selectedTimezone = detail.timezone;
+                            this.persistTimezone();
                             this.suppressEmit = false;
                         }
                     });
 
-                    this.$watch('selectedCountry', () => {
-                        this.ensureZone();
+                    this.$watch('selectedCountry', (newCountry) => {
+                        if (this.suppressEmit) return;
+                        if (!countryExists(newCountry)) {
+                            this.selectedCountry = defaultCountry;
+                            return;
+                        }
+                        const zones = findCountryByCode(newCountry)?.zones || [];
+                        if (zones.length === 0) {
+                            if (this.selectedZone !== null) {
+                                this.selectedZone = null;
+                                return;
+                            }
+                        } else if (!zones.includes(this.selectedZone)) {
+                            this.selectedZone = zones[0];
+                            return;
+                        }
+                        this.persistSelection();
                         this.emitSelection('country');
                     });
-                    this.$watch('selectedZone', () => {
+                    this.$watch('selectedZone', (newZone) => {
+                        if (this.suppressEmit) return;
+                        if (newZone && !zoneCountryMap.has(newZone)) {
+                            this.selectedZone = null;
+                            return;
+                        }
+                        if (newZone) {
+                            const owner = zoneCountryMap.get(newZone);
+                            if (owner && owner !== this.selectedCountry) {
+                                const zones = findCountryByCode(this.selectedCountry)?.zones || [];
+                                this.selectedZone = zones.length ? zones[0] : null;
+                                return;
+                            }
+                        } else {
+                            const zones = findCountryByCode(this.selectedCountry)?.zones || [];
+                            if (zones.length) {
+                                this.selectedZone = zones[0];
+                                return;
+                            }
+                        }
+                        this.persistSelection();
                         this.emitSelection('zone');
                     });
                     this.$watch('selectedTimezone', () => {
+                        if (this.suppressEmit) return;
+                        this.persistTimezone();
                         this.emitTimezone('timezone');
+                    });
+                    this.$watch('notificationZone', () => {
+                        if (this.suppressEmit) return;
+                        if (this.notificationZone && !zoneCountryMap.has(this.notificationZone)) {
+                            this.notificationZone = null;
+                            return;
+                        }
+                        this.persistNotification();
+                        this.emitNotification('notify-zone');
                     });
 
                     this.emitSelection('init');
                     this.emitTimezone('init');
+                    this.emitNotification('init');
                 }
             }));
         });
@@ -514,25 +745,135 @@
                     { code: 'GR', name: 'Greece', zones: ['GR'] },
 
                 ];
+                const storage = window.SPOT_STORAGE || {};
+                const decodeFallback = raw => {
+                    if (raw == null || raw === '') return null;
+                    try {
+                        return JSON.parse(raw);
+                    } catch (_) {
+                        return raw;
+                    }
+                };
+                const readStoredValue = storage.readStoredValue || ((key, legacyKeys = []) => {
+                    const read = candidate => {
+                        try {
+                            return decodeFallback(localStorage.getItem(candidate));
+                        } catch (_) {
+                            return null;
+                        }
+                    };
+                    const primary = read(key);
+                    if (primary !== null && primary !== undefined && primary !== '') return primary;
+                    for (const legacy of legacyKeys) {
+                        const legacyValue = read(legacy);
+                        if (legacyValue !== null && legacyValue !== undefined && legacyValue !== '') {
+                            return legacyValue;
+                        }
+                    }
+                    return null;
+                });
+                const writeStoredValue = storage.writeStoredValue || ((key, value, legacyKeys = []) => {
+                    try {
+                        if (value === null || value === undefined || value === '') {
+                            localStorage.removeItem(key);
+                            legacyKeys.forEach(candidate => localStorage.removeItem(candidate));
+                        } else {
+                            localStorage.setItem(key, JSON.stringify(value));
+                            legacyKeys.forEach(candidate => localStorage.removeItem(candidate));
+                        }
+                    } catch (_) {
+                        // ignore storage failures
+                    }
+                });
+                const STORAGE_KEYS = storage.STORAGE_KEYS || {
+                    country: 'spot.settings.country',
+                    zone: 'spot.settings.zone',
+                    timezone: 'spot.settings.timezone'
+                };
+                const LEGACY_KEYS = storage.LEGACY_KEYS || {
+                    country: 'spot.country',
+                    zone: 'spot.zone',
+                    timezone: 'spot.timezone'
+                };
+                const activeCountries = (Array.isArray(window.SPOT_COUNTRIES) && window.SPOT_COUNTRIES.length
+                    ? window.SPOT_COUNTRIES
+                    : DEFAULT_COUNTRIES);
+                const zoneOwners = storage.zoneOwners || {};
+                const zoneOptions = (Array.isArray(storage.zoneOptions) && storage.zoneOptions.length
+                    ? storage.zoneOptions
+                    : activeCountries.flatMap(country => {
+                        const zones = Array.isArray(country.zones) ? country.zones : [];
+                        return zones.map(zone => ({ code: zone, country: country.code, label: `${zone} · ${country.name}` }));
+                    }));
+                const countryExists = code => activeCountries.some(c => c.code === code);
+                const findCountryForZone = zone => {
+                    if (!zone) return null;
+                    if (zoneOwners && typeof zoneOwners === 'object' && zoneOwners[zone]) {
+                        return zoneOwners[zone];
+                    }
+                    const owner = activeCountries.find(c => Array.isArray(c.zones) && c.zones.includes(zone));
+                    return owner ? owner.code : null;
+                };
+                const firstZoneForCountry = code => {
+                    const country = activeCountries.find(c => c.code === code);
+                    if (!country || !Array.isArray(country.zones) || !country.zones.length) return null;
+                    return country.zones[0];
+                };
+                const firstAvailableZone = () => (zoneOptions.length ? zoneOptions[0].code : null);
                 return {
-                    countries: window.SPOT_COUNTRIES,
+                    countries: activeCountries,
                     country: 'SE',
+                    zone: null,
                     timezone: 'UTC',
                     chart: null,
+                    renderRequestId: 0,
+                    refreshHandle: null,
+                    refreshIntervalMs: 15 * 60 * 1000,
                     get currentCountry() { return this.countries.find(c => c.code === this.country); },
                     get currentCountryName() { return this.currentCountry?.name || '—'; },
                     init() {
-                        // load from localStorage or infer from navigator
-                        const saved = localStorage.getItem('spot.country');
-                        if (saved) {
-                            this.country = saved;
+                        const fallbackCountry = this.countries[0]?.code || null;
+                        const savedCountry = readStoredValue(STORAGE_KEYS.country, [LEGACY_KEYS.country]);
+                        if (typeof savedCountry === 'string' && countryExists(savedCountry)) {
+                            this.country = savedCountry;
                         } else {
                             const locale = (navigator.language || navigator.userLanguage || '').toUpperCase();
                             const match = this.countries.find(c => locale.includes(c.code));
                             if (match) this.country = match.code;
                         }
-                        const storedTz = localStorage.getItem('spot.timezone');
-                        if (storedTz) {
+                        if (!countryExists(this.country)) {
+                            this.country = fallbackCountry || this.country;
+                        }
+
+                        const storedZone = readStoredValue(STORAGE_KEYS.zone, [LEGACY_KEYS.zone]);
+                        const storedZoneOwner = typeof storedZone === 'string' ? findCountryForZone(storedZone) : null;
+                        if (storedZoneOwner) {
+                            this.zone = storedZone;
+                        }
+                        if (!this.zone) {
+                            const fallbackZone = firstZoneForCountry(this.country) || firstAvailableZone();
+                            this.zone = fallbackZone;
+                        }
+                        if (!countryExists(this.country)) {
+                            if (fallbackCountry) {
+                                this.country = fallbackCountry;
+                            }
+                        }
+                        if (!this.zone) {
+                            this.zone = firstAvailableZone();
+                        }
+
+                        if (this.country) {
+                            writeStoredValue(STORAGE_KEYS.country, this.country, [LEGACY_KEYS.country]);
+                        }
+                        if (this.zone) {
+                            writeStoredValue(STORAGE_KEYS.zone, this.zone, [LEGACY_KEYS.zone]);
+                        } else {
+                            writeStoredValue(STORAGE_KEYS.zone, null, [LEGACY_KEYS.zone]);
+                        }
+
+                        const storedTz = readStoredValue(STORAGE_KEYS.timezone, [LEGACY_KEYS.timezone]);
+                        if (typeof storedTz === 'string' && storedTz) {
                             this.timezone = storedTz;
                         } else {
                             try {
@@ -542,24 +883,87 @@
                                 this.timezone = 'UTC';
                             }
                         }
+                        if (this.timezone) {
+                            writeStoredValue(STORAGE_KEYS.timezone, this.timezone, [LEGACY_KEYS.timezone]);
+                        }
+
                         document.addEventListener('spot:selection-change', (event) => {
-                            const next = event?.detail?.country;
-                            if (next && next !== this.country) {
-                                this.country = next;
-                                this.$nextTick(() => { this.renderAllZones(); });
+                            const detail = event?.detail || {};
+                            if (detail.source === 'price-explorer') return;
+                            let needsRender = false;
+                            if (detail.country && detail.country !== this.country && countryExists(detail.country)) {
+                                this.country = detail.country;
+                                writeStoredValue(STORAGE_KEYS.country, this.country, [LEGACY_KEYS.country]);
+                                needsRender = true;
+                            }
+                            if (detail.zone !== undefined && detail.zone !== this.zone) {
+                                if (detail.zone === null || findCountryForZone(detail.zone)) {
+                                    this.zone = detail.zone;
+                                    writeStoredValue(STORAGE_KEYS.zone, this.zone, [LEGACY_KEYS.zone]);
+                                    needsRender = true;
+                                }
+                            }
+                            if (needsRender) {
+                                this.$nextTick(() => {
+                                    this.renderAllZones();
+                                    this.startAutoRefresh();
+                                });
                             }
                         });
                         document.addEventListener('spot:timezone-change', (event) => {
                             const nextTz = event?.detail?.timezone;
                             if (nextTz && nextTz !== this.timezone) {
                                 this.timezone = nextTz;
-                                this.$nextTick(() => { this.renderAllZones(); });
+                                writeStoredValue(STORAGE_KEYS.timezone, this.timezone, [LEGACY_KEYS.timezone]);
+                                this.$nextTick(() => {
+                                    this.renderAllZones();
+                                    this.startAutoRefresh();
+                                });
                             }
                         });
-                        // Render chart once Alpine has hydrated the DOM
+
+                        document.addEventListener('visibilitychange', () => {
+                            if (document.visibilityState === undefined || document.visibilityState === 'visible') {
+                                this.renderAllZones();
+                            }
+                        });
+                        window.addEventListener('beforeunload', () => this.stopAutoRefresh(), { once: true });
+
                         this.$nextTick(() => {
                             this.renderAllZones();
+                            this.startAutoRefresh();
                         });
+
+                        document.dispatchEvent(new CustomEvent('spot:selection-change', {
+                            detail: { country: this.country, zone: this.zone, timezone: this.timezone, reason: 'init-sync', source: 'price-explorer' }
+                        }));
+                        document.dispatchEvent(new CustomEvent('spot:timezone-change', {
+                            detail: { timezone: this.timezone, reason: 'init-sync', source: 'price-explorer' }
+                        }));
+                    },
+                    startAutoRefresh() {
+                        this.stopAutoRefresh();
+                        if (!Number.isFinite(this.refreshIntervalMs) || this.refreshIntervalMs <= 0) return;
+                        this.refreshHandle = setInterval(() => {
+                            if (document.visibilityState && document.visibilityState !== 'visible') return;
+                            this.renderAllZones();
+                        }, this.refreshIntervalMs);
+                    },
+                    stopAutoRefresh() {
+                        if (this.refreshHandle) {
+                            clearInterval(this.refreshHandle);
+                            this.refreshHandle = null;
+                        }
+                    },
+                    destroyChart() {
+                        if (this._resizeObs) {
+                            try { this._resizeObs.disconnect(); } catch (_) { }
+                            this._resizeObs = null;
+                        }
+                        if (this.chart) {
+                            try { this.chart.destroy(); } catch (_) { }
+                            this.chart = null;
+                        }
                     },
                     buildOptsAll(getWidth, getHeight, seriesDefs) {
                         const tz = this.timezone || 'UTC';
@@ -686,20 +1090,65 @@
                     },
                     async renderAllZones() {
                         const el = document.getElementById('priceChartAll');
+                        if (!el) return;
+
+                        this.renderRequestId += 1;
+                        const requestId = this.renderRequestId;
+
+                        const country = this.currentCountry;
+                        if (!country) {
+                            this.destroyChart();
+                            el.innerHTML = '<p class="text-center text-slate-500 text-sm">Choose a country to load prices.</p>';
+                            return;
+                        }
+
+                        const allZones = Array.isArray(country.zones) ? country.zones : [];
+                        const preferredZone = (this.zone && allZones.includes(this.zone)) ? this.zone : null;
+                        const zones = preferredZone
+                            ? [preferredZone, ...allZones.filter(z => z !== preferredZone)]
+                            : allZones.slice();
+
+                        if (!zones.length) {
+                            this.destroyChart();
+                            el.innerHTML = '<p class="text-center text-slate-500 text-sm">No bidding zones available for this country yet.</p>';
+                            return;
+                        }
+
+                        if (!this.chart) {
+                            el.innerHTML = '<p class="text-center text-slate-500 text-sm">Loading latest data…</p>';
+                        }
+
                         const getWidth = () => el.getBoundingClientRect().width;
                         const getHeight = () => el.getBoundingClientRect().height;
-
-                        const zones = this.currentCountry?.zones || [];
                         const colors = ['#059669', '#2563eb', '#f59e0b', '#dc2626', '#7c3aed', '#0ea5e9', '#16a34a'];
+                        const timerLabel = 'renderAllZones';
+                        const canTime = typeof console !== 'undefined' && typeof console.time === 'function';
+                        if (canTime) {
+                            console.time(timerLabel);
+                        }
+
                         try {
-                            console.time('renderAllZones');
                             const responses = await Promise.all(
-                                zones.map(z => fetch(`/electricity/${z}/latest/index.json`).then(r => r.json()))
+                                zones.map(async (z) => {
+                                    const res = await fetch(`/electricity/${z}/latest/index.json`, { cache: 'no-store' });
+                                    if (!res.ok) {
+                                        throw new Error(`Failed to load ${z} (${res.status})`);
+                                    }
+                                    return res.json();
+                                })
                             );
+
+                            if (requestId !== this.renderRequestId) return;
 
                             const tsSet = new Set();
                             responses.forEach(arr => arr.forEach(it => tsSet.add(Math.floor(new Date(it.timestamp).getTime() / 1000))));
                             const xTimes = Array.from(tsSet).sort((a, b) => a - b);
+
+                            if (!xTimes.length) {
+                                this.destroyChart();
+                                el.innerHTML = '<p class="text-center text-slate-500 text-sm">No recently published data for this country yet.</p>';
+                                return;
+                            }
 
                             const seriesY = responses.map(arr => {
                                 const m = new Map(arr.map(it => [Math.floor(new Date(it.timestamp).getTime() / 1000), parseFloat(it.value)]));
@@ -709,32 +1158,41 @@
                             const seriesDefs = zones.map((z, i) => ({ label: z, color: colors[i % colors.length] }));
                             const opts = this.buildOptsAll(getWidth, getHeight, seriesDefs);
 
-                            if (this._resizeObs) {
-                                try { this._resizeObs.disconnect(); } catch { }
-                            }
-                            if (this.chart) this.chart.destroy();
+                            this.destroyChart();
+                            el.innerHTML = '';
                             this.chart = new uPlot(opts, [xTimes, ...seriesY], el);
 
-                            // Observe container size and keep chart in sync
-                            this._resizeObs = new ResizeObserver(() => {
-                                if (this.chart) {
-                                    this.chart.setSize({ width: getWidth(), height: getHeight() });
-                                }
-                            });
-                            this._resizeObs.observe(el);
-                            console.timeEnd('renderAllZones');
+                            if (typeof ResizeObserver === 'function') {
+                                this._resizeObs = new ResizeObserver(() => {
+                                    if (this.chart) {
+                                        this.chart.setSize({ width: getWidth(), height: getHeight() });
+                                    }
+                                });
+                                this._resizeObs.observe(el);
+                            } else {
+                                this._resizeObs = null;
+                            }
 
-                            // datapoints log
                             const perSeriesCounts = seriesY.map(a => a.reduce((acc, v) => acc + (v == null ? 0 : 1), 0));
                             const totalPoints = perSeriesCounts.reduce((a, b) => a + b, 0);
-                            console.log('renderAllZones datapoints:', {
-                                xLen: xTimes.length,
-                                perSeries: zones.map((z, i) => ({ zone: z, points: perSeriesCounts[i] })),
-                                total: totalPoints,
-                            });
+                            if (typeof console !== 'undefined' && typeof console.log === 'function') {
+                                console.log('renderAllZones datapoints:', {
+                                    xLen: xTimes.length,
+                                    perSeries: zones.map((z, i) => ({ zone: z, points: perSeriesCounts[i] })),
+                                    total: totalPoints,
+                                });
+                            }
                         } catch (e) {
-                            el.innerHTML = '<p class="text-center text-red-600">Error loading price data.</p>';
-                            console.error('all-zones', e);
+                            if (requestId !== this.renderRequestId) return;
+                            this.destroyChart();
+                            el.innerHTML = '<p class="text-center text-rose-600 text-sm">Error loading price data. Please try again.</p>';
+                            if (typeof console !== 'undefined' && typeof console.error === 'function') {
+                                console.error('all-zones', e);
+                            }
+                        } finally {
+                            if (canTime && typeof console.timeEnd === 'function') {
+                                try { console.timeEnd(timerLabel); } catch (_) { }
+                            }
                         }
                     }
                 };
@@ -824,19 +1282,8 @@
                         <select id="spot-settings-country" data-alpine-managed="true" x-model="selectedCountry"
                             class="w-full rounded-md border border-white/10 bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-500">
                             <template x-for="country in countries" :key="country.code">
-                                <option :value="country.code" x-text="`${country.name} (${country.code})`"></option>
-                            </template>
-                        </select>
-                    </div>
-                    <div class="space-y-2">
-                        <h3 class="text-sm font-semibold text-slate-100">Preferred bidding zone</h3>
-                        <p class="text-xs text-slate-400">Notifications target this zone and the homepage chart
-                            highlights it.</p>
-                        <label for="spot-settings-zone" class="sr-only">Preferred bidding zone</label>
-                        <select id="spot-settings-zone" data-alpine-managed="true" x-model="selectedZone"
-                            class="w-full rounded-md border border-white/10 bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-500">
-                            <template x-for="zone in currentZones" :key="zone">
-                                <option :value="zone" x-text="zone"></option>
+                                <option :value="country.code" :selected="country.code === selectedCountry"
+                                    x-text="`${country.name} (${country.code})`"></option>
                             </template>
                         </select>
                     </div>
@@ -858,11 +1305,20 @@
                     <div>
                         <label for="spot-notify-toggle" class="text-sm font-medium text-slate-100">Enable price update
                             notifications</label>
-                        <p class="text-xs text-slate-400">Notifications will be sent for the selected bidding zone when
-                            new day-ahead prices are published.</p>
+                        <p class="text-xs text-slate-400">Choose which bidding zone should trigger alerts. This setting
+                            does not affect the preferred country above.</p>
+                        <div class="mt-3 space-y-2">
+                            <label for="spot-notify-zone" class="text-xs uppercase tracking-wide text-slate-400">Bidding
+                                zone</label>
+                            <select id="spot-notify-zone" data-alpine-managed="true" x-model="notificationZone"
+                                class="w-full rounded-md border border-white/10 bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-500">
+                                <template x-for="option in zoneOptions" :key="option.code">
+                                    <option :value="option.code" x-text="option.label || option.code"></option>
+                                </template>
+                            </select>
+                        </div>
 
-
-                        <span class="flex mt-2"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        <span class="flex mt-4"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                 stroke-width="1.5" stroke="currentColor" class="size-6 mr-2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />

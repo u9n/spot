@@ -39,6 +39,57 @@
   const isAlpineManaged = element => Boolean(element && element.dataset && element.dataset.alpineManaged === 'true');
 
   /* ------------------------------------------------------------------------ */
+  /* Storage helpers                                                          */
+  /* ------------------------------------------------------------------------ */
+
+  const decodeStoredValue = raw => {
+    if (raw == null || raw === '') return null;
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return raw;
+    }
+  };
+
+  const readStoredValue = (key, legacyKeys = []) => {
+    const read = candidate => {
+      try {
+        return decodeStoredValue(localStorage.getItem(candidate));
+      } catch (_) {
+        return null;
+      }
+    };
+    const primary = read(key);
+    if (primary !== null && primary !== undefined && primary !== '') return primary;
+    for (const legacy of legacyKeys) {
+      const legacyValue = read(legacy);
+      if (legacyValue !== null && legacyValue !== undefined && legacyValue !== '') {
+        return legacyValue;
+      }
+    }
+    return null;
+  };
+
+  const writeStoredValue = (key, value, legacyKeys = []) => {
+    try {
+      if (value === null || value === undefined || value === '') {
+        localStorage.removeItem(key);
+      } else {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+      legacyKeys.forEach(candidate => {
+        try {
+          localStorage.removeItem(candidate);
+        } catch (_) {
+          // ignore
+        }
+      });
+    } catch (_) {
+      // ignore storage issues (private browsing, etc.)
+    }
+  };
+
+  /* ------------------------------------------------------------------------ */
   /* Configuration + persisted defaults                                       */
   /* ------------------------------------------------------------------------ */
 
@@ -338,72 +389,39 @@
   /* ------------------------------------------------------------------------ */
 
   const loadStoredCountry = () => {
-    try {
-      let stored = localStorage.getItem(STORAGE_KEYS.country);
-      if (!stored) {
-        stored = localStorage.getItem(LEGACY_KEYS.country);
-      }
-      return findCountry(stored) ? stored : null;
-    } catch (_) {
-      return null;
-    }
+    const stored = readStoredValue(STORAGE_KEYS.country, [LEGACY_KEYS.country]);
+    return typeof stored === 'string' && findCountry(stored) ? stored : null;
   };
 
   const persistCountry = value => {
-    try {
-      if (value) {
-        localStorage.setItem(STORAGE_KEYS.country, value);
-        localStorage.removeItem(LEGACY_KEYS.country);
-      } else {
-        localStorage.removeItem(STORAGE_KEYS.country);
-        localStorage.removeItem(LEGACY_KEYS.country);
-      }
-    } catch (_) {
-      // ignore storage failures (private browsing)
+    if (value) {
+      writeStoredValue(STORAGE_KEYS.country, value, [LEGACY_KEYS.country]);
+    } else {
+      writeStoredValue(STORAGE_KEYS.country, null, [LEGACY_KEYS.country]);
     }
   };
 
   const loadStoredZone = country => {
-    try {
-      let stored = localStorage.getItem(STORAGE_KEYS.zone);
-      if (!stored) {
-        stored = localStorage.getItem(LEGACY_KEYS.zone);
-      }
-      if (!stored) return null;
-      const upper = normalizeZone(stored);
-      const countryInfo = findCountry(country);
-      const zones = countryInfo && Array.isArray(countryInfo.zones) ? countryInfo.zones : null;
-      const inCountry = zones ? zones.includes(upper) : false;
-      return inCountry ? upper : null;
-    } catch (_) {
-      return null;
-    }
+    const stored = readStoredValue(STORAGE_KEYS.zone, [LEGACY_KEYS.zone]);
+    if (!stored) return null;
+    const upper = normalizeZone(stored);
+    const countryInfo = findCountry(country);
+    const zones = countryInfo && Array.isArray(countryInfo.zones) ? countryInfo.zones : null;
+    const inCountry = zones ? zones.includes(upper) : false;
+    return inCountry ? upper : null;
   };
 
   const maybePersistZone = zone => {
-    try {
-      if (zone) {
-        localStorage.setItem(STORAGE_KEYS.zone, zone);
-        localStorage.removeItem(LEGACY_KEYS.zone);
-      } else {
-        localStorage.removeItem(STORAGE_KEYS.zone);
-        localStorage.removeItem(LEGACY_KEYS.zone);
-      }
-    } catch (_) {
-      // ignore
+    if (zone) {
+      writeStoredValue(STORAGE_KEYS.zone, zone, [LEGACY_KEYS.zone]);
+    } else {
+      writeStoredValue(STORAGE_KEYS.zone, null, [LEGACY_KEYS.zone]);
     }
   };
 
   const loadStoredTimezone = () => {
-    try {
-      let stored = localStorage.getItem(STORAGE_KEYS.timezone);
-      if (!stored) {
-        stored = localStorage.getItem(LEGACY_KEYS.timezone);
-      }
-      if (stored) return stored;
-    } catch (_) {
-      // ignore
-    }
+    const stored = readStoredValue(STORAGE_KEYS.timezone, [LEGACY_KEYS.timezone]);
+    if (typeof stored === 'string' && stored) return stored;
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     } catch (_) {
@@ -412,16 +430,10 @@
   };
 
   const persistTimezone = tz => {
-    try {
-      if (tz) {
-        localStorage.setItem(STORAGE_KEYS.timezone, tz);
-        localStorage.removeItem(LEGACY_KEYS.timezone);
-      } else {
-        localStorage.removeItem(STORAGE_KEYS.timezone);
-        localStorage.removeItem(LEGACY_KEYS.timezone);
-      }
-    } catch (_) {
-      // ignore
+    if (tz) {
+      writeStoredValue(STORAGE_KEYS.timezone, tz, [LEGACY_KEYS.timezone]);
+    } else {
+      writeStoredValue(STORAGE_KEYS.timezone, null, [LEGACY_KEYS.timezone]);
     }
   };
 
