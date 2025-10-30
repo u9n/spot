@@ -1,0 +1,123 @@
+openapi: 3.0.3
+info:
+  title: Utilitarian Spot Electricity Price API
+  description: >
+    REST API that serves day-ahead and historical European electricity prices.
+    The service is free, does not require authentication, and is designed to be
+    easy for LLM agents to query directly. All responses are JSON arrays of
+    price records sorted by timestamp.
+  version: "1.0.0"
+  contact:
+    name: Utilitarian
+    url: https://utilitarian.io
+    email: info@utilitarian.io
+servers:
+  - url: https://spot.utilitarian.io
+paths:
+  /electricity/{zone}/latest/:
+    get:
+      summary: Latest prices for today and tomorrow
+      operationId: getLatestPrices
+      description: >
+        Returns the most recently published prices for the requested bidding zone.
+        The array typically contains 48 hourly datapoints – 24 for today and 24 for tomorrow.
+      parameters:
+        - $ref: '#/components/parameters/ZoneParam'
+      responses:
+        "200":
+          $ref: '#/components/responses/PriceSeriesResponse'
+        "404":
+          description: The specified zone could not be found.
+  /electricity/{zone}/{year}/:
+    get:
+      summary: Prices for an entire year
+      operationId: getYearlyPrices
+      description: >
+        Returns every published datapoint for the supplied year in the requested bidding zone.
+      parameters:
+        - $ref: '#/components/parameters/ZoneParam'
+        - $ref: '#/components/parameters/YearParam'
+      responses:
+        "200":
+          $ref: '#/components/responses/PriceSeriesResponse'
+        "404":
+          description: The specified zone or year could not be found.
+  /electricity/{zone}/{year}/{month}/:
+    get:
+      summary: Prices for a specific month
+      operationId: getMonthlyPrices
+      description: >
+        Returns day-ahead datapoints for the supplied year and month in the requested bidding zone.
+      parameters:
+        - $ref: '#/components/parameters/ZoneParam'
+        - $ref: '#/components/parameters/YearParam'
+        - $ref: '#/components/parameters/MonthParam'
+      responses:
+        "200":
+          $ref: '#/components/responses/PriceSeriesResponse'
+        "404":
+          description: The specified zone/month combination could not be found.
+  /electricity/{zone}/{year}/{month}/{day}/:
+    get:
+      summary: Prices for a specific day
+      operationId: getDailyPrices
+      description: >
+        Returns all datapoints for the supplied calendar day in the requested bidding zone.
+      parameters:
+        - $ref: '#/components/parameters/ZoneParam'
+        - $ref: '#/components/parameters/YearParam'
+        - $ref: '#/components/parameters/MonthParam'
+        - $ref: '#/components/parameters/DayParam'
+      responses:
+        "200":
+          $ref: '#/components/responses/PriceSeriesResponse'
+        "404":
+          description: The specified date could not be found.
+components:
+  schemas:
+    PriceRecord:
+      $ref: '../.well-known/schema/prices.schema.json#/definitions/PriceRecord'
+    PriceCollection:
+      $ref: '../.well-known/schema/prices.schema.json#/definitions/PriceCollection'
+  responses:
+    PriceSeriesResponse:
+      description: Array of price datapoints for the requested period.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PriceCollection'
+  parameters:
+    ZoneParam:
+      name: zone
+      in: path
+      description: >
+        ENTSO-E bidding zone identifier (e.g. SE1, NO2, DE_LU). See the developer documentation
+        for the complete list.
+      required: true
+      schema:
+        type: string
+    YearParam:
+      name: year
+      in: path
+      required: true
+      description: Four-digit year (UTC calendar).
+      schema:
+        type: integer
+        minimum: 2000
+        maximum: 2100
+    MonthParam:
+      name: month
+      in: path
+      required: true
+      description: Two-digit month number (01-12).
+      schema:
+        type: string
+        pattern: "^(0[1-9]|1[0-2])$"
+    DayParam:
+      name: day
+      in: path
+      required: true
+      description: Two-digit day of month (01-31).
+      schema:
+        type: string
+        pattern: "^(0[1-9]|[12][0-9]|3[01])$"

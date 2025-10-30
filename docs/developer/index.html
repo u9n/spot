@@ -17,6 +17,27 @@
     <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "Utilitarian Spot Developer Dataset",
+  "description": "Documentation and API access for Utilitarian Spot day-ahead electricity prices across European bidding zones.",
+  "url": "https://spot.utilitarian.io/developer/",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "creator": {
+    "@type": "Organization",
+    "name": "Utilitarian",
+    "url": "https://utilitarian.io"
+  },
+  "distribution": {
+    "@type": "DataDownload",
+    "encodingFormat": "application/json",
+    "contentUrl": "https://spot.utilitarian.io/api/openapi.yaml"
+  },
+  "keywords": ["electricity", "API", "ENTSO-E", "energy prices", "developer documentation"]
+}
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css"
@@ -58,7 +79,8 @@
         </nav>
     </header>
     <div class="sm:hidden bg-white/95 backdrop-blur border-b border-slate-200">
-        <a href="/" class="mx-auto flex w-full max-w-6xl items-baseline justify-center gap-2 px-4 py-3 font-display text-lg font-semibold text-slate-900">
+        <a href="/"
+            class="mx-auto flex w-full max-w-6xl items-baseline justify-center gap-2 px-4 py-3 font-display text-lg font-semibold text-slate-900">
             <span>Utilitarian</span>
             <span class="relative whitespace-nowrap text-green-600">
                 <svg aria-hidden="true" viewBox="0 0 418 42"
@@ -78,6 +100,7 @@
                 for Utilitarian Spot.</p>
 
         </header>
+
 
         <!-- Available Zones -->
         <div class="mx-auto p-4 max-w-5xl border-b border-slate-200/60">
@@ -312,6 +335,113 @@ may_3rd = httpx.get(
                 Platform</a> under the terms of CC BY 4.0. Utilitarian Spot is provided on a best-effort basis without
             uptime or accuracy guarantees.
         </footer>
+            <section class="mb-10 rounded-xl border border-emerald-200 bg-emerald-50/80 p-6 text-sm text-slate-700">
+            <h2 class="text-base font-semibold text-emerald-900 mb-3">Using Spot with LLMs</h2>
+            <p class="mb-3">Spot is intentionally LLM-friendly: no authentication, no rate limits, and a published OpenAPI schema. Agents can call the REST endpoints directly or load the schema automatically.</p>
+            <ul class="list-disc pl-5 space-y-2">
+                <li><strong>OpenAPI schema:</strong> <a class="text-emerald-700 font-semibold hover:text-emerald-900" href="/api/openapi.yaml">/api/openapi.yaml</a></li>
+                <li><strong>Plugin manifest:</strong> <a class="text-emerald-700 font-semibold hover:text-emerald-900" href="/.well-known/ai-plugin.json">/.well-known/ai-plugin.json</a></li>
+                <li><strong>Prompt snippet:</strong> “You can fetch prices by calling <code class="bg-emerald-100 px-1 py-0.5 rounded">GET /electricity/SE3/latest/</code> (JSON array of timestamp/value pairs in €/MWh). No auth required.”</li>
+            </ul>
+
+            <h3 class="mt-6 mb-2 font-semibold text-emerald-900">Function-calling drop-ins</h3>
+            <p class="mb-2">Use these payloads when registering tools with OpenAI, Anthropic, or similar runtimes.</p>
+            <pre class="overflow-x-auto rounded-lg border border-emerald-200 bg-white p-3 text-xs text-slate-800"><code>// OpenAI function definition
+{
+  "type": "function",
+  "function": {
+    "name": "spot_get_latest",
+    "description": "Return the latest day-ahead prices for a bidding zone (€/MWh).",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "zone": {
+          "type": "string",
+          "description": "ENTSO-E bidding zone such as SE3, NO2, DE_LU"
+        }
+      },
+      "required": ["zone"]
+    }
+  }
+}</code></pre>
+            <pre class="mt-3 overflow-x-auto rounded-lg border border-emerald-200 bg-white p-3 text-xs text-slate-800"><code>// Example tool call (OpenAI)
+{
+  "id": "spot-call-1",
+  "type": "function",
+  "function": {
+    "name": "spot_get_latest",
+    "arguments": "{\"zone\":\"SE3\"}"
+  }
+}</code></pre>
+            <pre class="mt-3 overflow-x-auto rounded-lg border border-emerald-200 bg-white p-3 text-xs text-slate-800"><code>// Anthropic tool referencing OpenAPI
+{
+  "name": "spot_api",
+  "description": "Utilitarian Spot electricity price API",
+  "input_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://spot.utilitarian.io/api/openapi.yaml#/components/schemas/PriceRecord"
+  }
+}</code></pre>
+            <pre class="mt-3 overflow-x-auto rounded-lg border border-emerald-200 bg-white p-3 text-xs text-slate-800"><code># LangChain helper
+from langchain.tools import StructuredTool
+import httpx
+
+def fetch_latest(zone: str):
+    resp = httpx.get(f"https://spot.utilitarian.io/electricity/{zone}/latest/")
+    resp.raise_for_status()
+    return resp.json()
+
+spot_tool = StructuredTool.from_function(
+    func=fetch_latest,
+    name="spot_latest_prices",
+    description="Return the latest electricity prices (€/MWh) for a bidding zone such as SE3 or DE_LU."
+)</code></pre>
+
+            <h3 class="mt-6 mb-2 font-semibold text-emerald-900">Few-shot Q&A for agents</h3>
+            <p class="mb-3">Give your assistant realistic examples of how to translate questions into API calls and answers.</p>
+            <div class="space-y-3 text-xs sm:text-sm">
+                <div class="rounded-lg border border-emerald-200 bg-white p-3">
+                    <p class="font-semibold text-emerald-900">Q:</p>
+                    <p>“What are the latest Swedish SE3 prices?”</p>
+                    <p class="mt-2 font-semibold text-emerald-900">Tool call:</p>
+                    <pre class="overflow-x-auto bg-emerald-50/60 p-2 rounded"><code>{
+  "name": "spot_get_latest",
+  "arguments": {"zone": "SE3"}
+}</code></pre>
+                    <p class="mt-2 font-semibold text-emerald-900">A:</p>
+                    <p>“SE3 latest prices (€/MWh): 2025-02-07T00:00Z → 55.12, … 2025-02-08T23:00Z → 48.63.”</p>
+                </div>
+                <div class="rounded-lg border border-emerald-200 bg-white p-3">
+                    <p class="font-semibold text-emerald-900">Q:</p>
+                    <p>“Give me the SE1 prices for May 2024.”</p>
+                    <p class="mt-2 font-semibold text-emerald-900">Tool call:</p>
+                    <pre class="overflow-x-auto bg-emerald-50/60 p-2 rounded"><code>{
+  "name": "spot_get_month",
+  "arguments": {"zone": "SE1", "year": "2024", "month": "05"}
+}</code></pre>
+                    <p class="mt-2 font-semibold text-emerald-900">A:</p>
+                    <p>“Returned 744 hourly datapoints for SE1 May 2024. Average price 32.44 €/MWh.”</p>
+                </div>
+                <div class="rounded-lg border border-emerald-200 bg-white p-3">
+                    <p class="font-semibold text-emerald-900">Q:</p>
+                    <p>“Compare NO2 and NO3 prices for 7 Feb 2025.”</p>
+                    <p class="mt-2 font-semibold text-emerald-900">Tool calls:</p>
+                    <pre class="overflow-x-auto bg-emerald-50/60 p-2 rounded"><code>[
+  {
+    "name": "spot_get_day",
+    "arguments": {"zone": "NO2", "year": "2025", "month": "02", "day": "07"}
+  },
+  {
+    "name": "spot_get_day",
+    "arguments": {"zone": "NO3", "year": "2025", "month": "02", "day": "07"}
+  }
+]</code></pre>
+                    <p class="mt-2 font-semibold text-emerald-900">A:</p>
+                    <p>“NO2 averaged 41.2 €/MWh; NO3 averaged 38.7 €/MWh on 2025‑02‑07. Spread 2.5 €/MWh.”</p>
+                </div>
+            </div>
+        </section>
+
     </main>
     <script>
         document.addEventListener('DOMContentLoaded', () => {

@@ -74,6 +74,31 @@
     Choosing UTC does not give UTC timestamps in the graphs.
     
     -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "Utilitarian Spot – EU Day-ahead Electricity Prices",
+  "description": "Day-ahead and historical hourly electricity prices for European bidding zones, proxied by Utilitarian Spot with ENTSO-E data.",
+  "url": "https://spot.utilitarian.io/",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "creator": {
+    "@type": "Organization",
+    "name": "Utilitarian",
+    "url": "https://utilitarian.io"
+  },
+  "distribution": {
+    "@type": "DataDownload",
+    "encodingFormat": "application/json",
+    "contentUrl": "https://spot.utilitarian.io/api/openapi.yaml"
+  },
+  "spatialCoverage": {
+    "@type": "Place",
+    "name": "Europe"
+  },
+  "keywords": ["electricity", "day-ahead", "ENTSO-E", "energy prices", "Europe"]
+}
+    </script>
     <script>
         window.SPOT_COUNTRIES = window.SPOT_COUNTRIES || [
             { code: 'SE', name: 'Sweden', zones: ['SE1', 'SE2', 'SE3', 'SE4'] },

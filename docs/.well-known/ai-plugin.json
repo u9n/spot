@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Utilitarian Spot Electricity Prices",
+  "name_for_model": "utilitarian_spot_prices",
+  "description_for_human": "Day-ahead and historical EU electricity prices with zero auth or rate limits.",
+  "description_for_model": "Retrieve day-ahead and historical European electricity prices in €/MWh. Use zone codes such as SE3, NO2, DE_LU. Endpoints include /electricity/{zone}/latest/, /electricity/{zone}/{year}/, /electricity/{zone}/{year}/{month}/, and /electricity/{zone}/{year}/{month}/{day}/. Responses are JSON arrays of timestamp/value pairs. No authentication or rate limits.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://spot.utilitarian.io/api/openapi.yaml",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://spot.utilitarian.io/assets/images/utilitarian_logo_on_light.svg",
+  "contact_email": "info@utilitarian.io"
+}

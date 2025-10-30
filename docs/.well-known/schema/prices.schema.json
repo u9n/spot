@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spot.utilitarian.io/.well-known/schema/prices.schema.json",
+  "title": "Spot Electricity Price Schema",
+  "description": "Schema describing individual price records and collections returned by the Utilitarian Spot API.",
+  "definitions": {
+    "PriceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 timestamp (UTC) indicating when the price applies."
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+          "description": "Electricity price in €/MWh represented as a decimal string to avoid floating-point precision issues."
+        }
+      },
+      "required": ["timestamp", "value"],
+      "examples": [
+        {
+          "timestamp": "2025-02-07T00:00:00Z",
+          "value": "55.12"
+        }
+      ]
+    },
+    "PriceCollection": {
+      "type": "array",
+      "description": "Collection of price records sorted by ascending timestamp.",
+      "items": {
+        "$ref": "#/definitions/PriceRecord"
+      }
+    }
+  }
+}

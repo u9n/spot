@@ -1,0 +1,15 @@
+# Utilitarian Spot AI Access Policy
+Agents, crawlers, and researchers are welcome to use the Spot API.
+
+Preferred entry points:
+- https://spot.utilitarian.io/api/openapi.yaml (OpenAPI schema)
+- https://spot.utilitarian.io/.well-known/ai-plugin.json (Plugin manifest)
+- https://spot.utilitarian.io/.well-known/schema/prices.schema.json (JSON schema)
+- https://spot.utilitarian.io/.well-known/dataset.json (Dataset metadata)
+
+Guidelines:
+- Attribute the source as "Utilitarian Spot – ENTSO-E day-ahead prices" when sharing derived insights.
+- Respect the ENTSO-E CC BY 4.0 licence when redistributing data.
+- Avoid flooding the service; polite caching is encouraged even though there are no explicit rate limits.
+
+Contact: info@utilitarian.io
