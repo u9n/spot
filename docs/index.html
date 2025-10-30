@@ -362,6 +362,13 @@
                         }
                     }));
                 },
+                chooseCountry(code) {
+                    if (!countryExists(code)) return;
+                    if (this.selectedCountry === code) {
+                        return;
+                    }
+                    this.selectedCountry = code;
+                },
                 applyExternalSelection(detail = {}) {
                     this.suppressEmit = true;
                     if (detail.country && countryExists(detail.country)) {
@@ -581,13 +588,10 @@
         <div class="mx-auto p-4 max-w-5xl" x-data="priceExplorer()" x-init="init()">
 
 
-            <div class="my-8">
-                <div id="priceChartAll" class="relative w-full h-64 sm:h-80 lg:h-96 mb-8"></div>
-
-            </div>
-            <div class="my-4 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+            <div class="relative my-8">
+                <div id="priceChartAll" class="w-full h-64 sm:h-80 lg:h-96 mb-8"></div>
                 <button id="spot-country-display" type="button"
-                    class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 min-w-0 w-full sm:w-auto touch-manipulation"
+                    class="absolute top-0 right-3 -translate-y-1/4 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/95 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md backdrop-blur hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 touch-manipulation"
                     aria-label="Choose country and zone" @click="openPanel()" x-text="countryLabel">
                 </button>
             </div>
@@ -669,33 +673,113 @@
                     <div>
                         <h5 class="font-medium text-slate-700 mb-2">Nordics</h5>
                         <div class="space-y-1 text-slate-700">
-                            <div>🇸🇪 <strong>Sweden:</strong> SE1, SE2, SE3, SE4</div>
-                            <div>🇩🇰 <strong>Denmark:</strong> DK1, DK2</div>
-                            <div>🇳🇴 <strong>Norway:</strong> NO1, NO2, NO3, NO4, NO5</div>
-                            <div>🇫🇮 <strong>Finland:</strong> FI</div>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'SE' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('SE')" :aria-pressed="selectedCountry === 'SE'">
+                                <span>🇸🇪 <strong>Sweden:</strong> SE1, SE2, SE3, SE4</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'DK' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('DK')" :aria-pressed="selectedCountry === 'DK'">
+                                <span>🇩🇰 <strong>Denmark:</strong> DK1, DK2</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'NO' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('NO')" :aria-pressed="selectedCountry === 'NO'">
+                                <span>🇳🇴 <strong>Norway:</strong> NO1, NO2, NO3, NO4, NO5</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'FI' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('FI')" :aria-pressed="selectedCountry === 'FI'">
+                                <span>🇫🇮 <strong>Finland:</strong> FI</span>
+                            </button>
                         </div>
                     </div>
                     <div>
                         <h5 class="font-medium text-slate-700 mb-2">Central Europe</h5>
                         <div class="space-y-1 text-slate-700">
-                            <div>🇩🇪 <strong>Germany:</strong> DE_LU</div>
-                            <div>🇦🇹 <strong>Austria:</strong> AT</div>
-                            <div>🇫🇷 <strong>France:</strong> FR</div>
-                            <div>🇧🇪 <strong>Belgium:</strong> BE</div>
-                            <div>🇳🇱 <strong>Netherlands:</strong> NL</div>
-                            <div>🇵🇱 <strong>Poland:</strong> PL</div>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'DE' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('DE')" :aria-pressed="selectedCountry === 'DE'">
+                                <span>🇩🇪 <strong>Germany:</strong> DE_LU</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'AT' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('AT')" :aria-pressed="selectedCountry === 'AT'">
+                                <span>🇦🇹 <strong>Austria:</strong> AT</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'FR' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('FR')" :aria-pressed="selectedCountry === 'FR'">
+                                <span>🇫🇷 <strong>France:</strong> FR</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'BE' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('BE')" :aria-pressed="selectedCountry === 'BE'">
+                                <span>🇧🇪 <strong>Belgium:</strong> BE</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'NL' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('NL')" :aria-pressed="selectedCountry === 'NL'">
+                                <span>🇳🇱 <strong>Netherlands:</strong> NL</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'PL' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('PL')" :aria-pressed="selectedCountry === 'PL'">
+                                <span>🇵🇱 <strong>Poland:</strong> PL</span>
+                            </button>
                         </div>
                     </div>
                     <div>
                         <h5 class="font-medium text-slate-700 mb-2">Eastern &amp; Southern</h5>
                         <div class="space-y-1 text-slate-700">
-                            <div>🇪🇪 <strong>Estonia:</strong> EE</div>
-                            <div>🇱🇹 <strong>Lithuania:</strong> LT</div>
-                            <div>🇱🇻 <strong>Latvia:</strong> LV</div>
-                            <div>🇮🇹 <strong>Italy:</strong> IT-NORTH, IT-CENTRE_NORTH, IT-CENTRE_SOUTH, IT-SOUTH,
-                                IT-SICILY, IT-SARDINIA, IT-CALABRIA</div>
-                            <div>🇪🇸 <strong>Spain:</strong> ES</div>
-                            <div>🇵🇹 <strong>Portugal:</strong> PT</div>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'EE' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('EE')" :aria-pressed="selectedCountry === 'EE'">
+                                <span>🇪🇪 <strong>Estonia:</strong> EE</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'LT' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('LT')" :aria-pressed="selectedCountry === 'LT'">
+                                <span>🇱🇹 <strong>Lithuania:</strong> LT</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'LV' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('LV')" :aria-pressed="selectedCountry === 'LV'">
+                                <span>🇱🇻 <strong>Latvia:</strong> LV</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'IT' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('IT')" :aria-pressed="selectedCountry === 'IT'">
+                                <span>🇮🇹 <strong>Italy:</strong> IT-NORTH, IT-CENTRE_NORTH, IT-CENTRE_SOUTH, IT-SOUTH,
+                                    IT-SICILY, IT-SARDINIA, IT-CALABRIA</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'ES' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('ES')" :aria-pressed="selectedCountry === 'ES'">
+                                <span>🇪🇸 <strong>Spain:</strong> ES</span>
+                            </button>
+                            <button type="button"
+                                class="block w-full text-left rounded-md border border-transparent px-3 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                :class="selectedCountry === 'PT' ? 'border-slate-300 bg-slate-100 text-slate-900 shadow-sm' : 'hover:border-slate-200 hover:bg-slate-50'"
+                                @click="chooseCountry('PT')" :aria-pressed="selectedCountry === 'PT'">
+                                <span>🇵🇹 <strong>Portugal:</strong> PT</span>
+                            </button>
                         </div>
                     </div>
                 </div>
