@@ -523,7 +523,7 @@
     </script>
 </head>
 
-<body x-data="spotSettingsFlyout()" x-init="init()">
+<body class="bg-white" x-data="spotSettingsFlyout()" x-init="init()">
     <header
         class="bg-slate-900/95 text-slate-100 backdrop-blur border-t border-white/10 fixed inset-x-0 bottom-0 z-40 sm:bg-white/90 sm:text-slate-600 sm:sticky sm:top-0 sm:bottom-auto sm:border-b sm:border-t-0 sm:border-slate-200">
         <nav
@@ -587,16 +587,14 @@
         </a>
     </div>
     <main class="pb-20 sm:pb-0">
-        <div class="hidden md:block mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 text-center lg:pt-16">
+        <div class="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 pt-6 text-center md:pt-10 lg:pt-16">
             <h1
-                class="mx-auto max-w-4xl font-display text-3xl font-bold tracking-tight text-slate-900 lg:text-5xl xl:text-7xl">
+                class="mx-auto max-w-4xl font-display text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl md:text-5xl lg:text-6xl">
                 Day-ahead energy prices across the EU
             </h1>
-            <p class="mx-auto mt-6 max-w-2xl text-lg tracking-tight text-slate-700">
-                Access historical and day ahead prices of energy across the EU. Simple, fast and free. Build your own
-                dashboards or apps on top of the same data—no billing, no rate limits.
+            <p class="mx-auto mt-4 max-w-2xl text-sm font-medium tracking-tight text-slate-700 sm:text-base md:mt-6">
+                Simple, fast and free pricing feeds for dashboards, apps, and automations—no billing, no rate limits.
             </p>
-
         </div>
 
         <div class="mx-auto max-w-5xl px-2 sm:px-4 lg:px-8 py-4 sm:py-6" x-data="priceExplorer()" x-init="init()">
@@ -1112,7 +1110,29 @@
                         };
                         const isSmallScreen = this.screenQuery ? this.screenQuery.matches
                             : (typeof window !== 'undefined' ? window.innerWidth < 640 : false);
-                        const chartPadding = isSmallScreen ? [12, 8, 16, 8] : [20, 16, 28, 28];
+                        const chartPadding = isSmallScreen ? [12, 4, 18, 4] : [16, 10, 28, 14];
+                        const yAxisIncrements = [1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 400, 800];
+                        const priceValueFormatter = typeof Intl !== 'undefined'
+                            ? new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 })
+                            : { format: (v) => String(Math.round(v)) };
+                        const buildYAxisSplits = (min, max) => {
+                            if (!Number.isFinite(min) || !Number.isFinite(max)) return [];
+                            const span = max - min;
+                            if (span <= 0) return [min];
+                            const desiredLines = isSmallScreen ? 5 : 7;
+                            const rawStep = span / desiredLines;
+                            const chosenIncr = yAxisIncrements.find(incr => incr >= rawStep) || rawStep;
+                            const first = Math.floor(min / chosenIncr) * chosenIncr;
+                            const splits = [];
+                            let current = first;
+                            if (current > min) {
+                                current -= chosenIncr;
+                            }
+                            for (; current <= max + chosenIncr; current += chosenIncr) {
+                                splits.push(current);
+                            }
+                            return splits;
+                        };
                         return {
                             title: null,
                             width: getWidth(),
@@ -1148,13 +1168,18 @@
                                         });
                                     },
                                     grid: { show: true },
-                                    space: isSmallScreen ? 36 : 56,
-                                    gap: isSmallScreen ? 4 : 6
+                                    ticks: { show: true, size: 3 },
+                                    space: isSmallScreen ? 24 : 44,
+                                    gap: isSmallScreen ? 3 : 6
                                 },
                                 {
                                     label: isSmallScreen ? null : "Price (€/MWh)",
                                     grid: { show: true },
-                                    space: isSmallScreen ? 56 : 72
+                                    ticks: { show: true, size: 3 },
+                                    space: isSmallScreen ? 34 : 48,
+                                    incrs: yAxisIncrements,
+                                    splits: (u, axisIdx, min, max) => buildYAxisSplits(min, max),
+                                    values: (u, vals) => vals.map(v => priceValueFormatter.format(v))
                                 }
                             ],
                             scales: { x: { time: true } },
