@@ -1153,7 +1153,8 @@
                                     label: isSmallScreen ? null : `Time (${tz})`,
                                     values: (u, vals) => {
                                         let lastDay = null;
-                                        return vals.map(v => {
+                                        const stride = isSmallScreen ? Math.max(1, Math.ceil(vals.length / 4)) : 1;
+                                        return vals.map((v, i) => {
                                             const local = toLocalDate(v);
                                             const day = local.getDate();
                                             const isMidnight = local.getHours() === 0 && local.getMinutes() === 0;
@@ -1164,13 +1165,13 @@
                                                 out = local.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
                                             }
                                             lastDay = day;
-                                            return out;
+                                            return i % stride === 0 ? out : '';
                                         });
                                     },
                                     grid: { show: true },
-                                    ticks: { show: true, size: 3 },
+                                    ticks: { show: !isSmallScreen, size: 4 },
                                     space: isSmallScreen ? 24 : 44,
-                                    gap: isSmallScreen ? 3 : 6
+                                    gap: isSmallScreen ? 6 : 8
                                 },
                                 {
                                     label: isSmallScreen ? null : "Price (€/MWh)",
