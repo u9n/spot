@@ -567,7 +567,8 @@
     </button>
     <main class="pb-20 sm:pb-0">
         <div class="hidden md:block mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 text-center lg:pt-16">
-            <h1 class="mx-auto max-w-4xl font-display text-3xl font-bold tracking-tight text-slate-900 lg:text-5xl xl:text-7xl">
+            <h1
+                class="mx-auto max-w-4xl font-display text-3xl font-bold tracking-tight text-slate-900 lg:text-5xl xl:text-7xl">
                 Day-ahead energy prices across the EU
             </h1>
             <p class="mx-auto mt-6 max-w-2xl text-lg tracking-tight text-slate-700">
@@ -578,7 +579,7 @@
         </div>
 
         <div class="mx-auto p-4 max-w-5xl" x-data="priceExplorer()" x-init="init()">
-           
+
 
             <div class="my-8">
                 <div id="priceChartAll" class="relative w-full h-64 sm:h-80 lg:h-96 mb-8"></div>
@@ -591,12 +592,7 @@
                 </button>
             </div>
         </div>
-        <div class="text-center mb-8">
-            <a href="/explorer/"
-                class="inline-flex items-center justify-center rounded-full py-3 px-6 text-sm font-semibold bg-slate-900 text-white hover:bg-slate-700 touch-manipulation min-h-[44px]">
-                Explore historical prices →
-            </a>
-        </div>
+
         <!--
         <div id="spot-dev-panel" class="hidden mx-auto mt-6 max-w-3xl px-4 sm:px-6 lg:px-8">
             <div class="rounded-xl border border-slate-300 bg-slate-900 p-6 text-slate-100 shadow-lg">
@@ -663,7 +659,7 @@
           -->
 
         <!-- Available Zones -->
-        <div class="mx-auto p-4 max-w-5xl border-b border-slate-200/60">
+        <div class="mx-auto p-4 max-w-5xl border-slate-200/60">
             <div class="bg-white rounded-xl shadow-md border border-slate-200">
                 <div class="px-6 py-4 border-b border-slate-100">
                     <h4 class="font-semibold text-slate-900">Available Zones</h4>
@@ -705,6 +701,12 @@
                 </div>
             </div>
         </div>
+
+        <div class="text-center my-4">
+            <a href="/explorer/"
+                class="inline-flex items-center justify-center rounded-full py-3 px-6 text-sm font-semibold bg-slate-900 text-white hover:bg-slate-700 touch-manipulation min-h-[44px]">
+                Explore historical prices →
+            </a>
         </div>
 
         <script>
