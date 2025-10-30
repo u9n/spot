@@ -611,6 +611,23 @@
             </span>
         </a>
     </div>
+    <div id="pwa-install-banner" class="fixed inset-x-4 bottom-24 z-40 hidden rounded-2xl border border-emerald-200 bg-white/95 p-4 shadow-lg sm:bottom-auto sm:top-24 sm:left-auto sm:right-6 sm:max-w-sm">
+        <div class="flex items-start gap-3">
+            <div class="mt-0.5">
+                <svg class="h-6 w-6 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.75 2.75a.75.75 0 0 0-1.5 0V9H4a.75.75 0 0 0 0 1.5h5.25V16a.75.75 0 0 0 1.5 0v-5.5H16a.75.75 0 0 0 0-1.5h-5.25V2.75Z" />
+                </svg>
+            </div>
+            <div class="flex-1 text-sm text-slate-700">
+                <p class="font-semibold text-slate-900">Install Spot as an app</p>
+                <p class="mt-1">Pin live electricity prices to your home screen for instant access.</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <button id="pwa-install-button" class="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">Install</button>
+                    <button id="pwa-dismiss-button" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-200">Not now</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <main class="pb-20 sm:pb-0">
         <div class="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 pt-6 text-center md:pt-10 lg:pt-16">
             <h1
@@ -628,7 +645,7 @@
             <div class="relative my-8">
                 <div id="priceChartAll" class="w-full h-64 sm:h-80 lg:h-96 mb-8"></div>
                 <button id="spot-country-display" type="button"
-                    class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/4 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/95 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md backdrop-blur hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 touch-manipulation"
+                    class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/95 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md backdrop-blur hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 touch-manipulation"
                     aria-label="Choose country and zone" @click="openPanel()" x-text="countryLabel">
                 </button>
             </div>
@@ -836,6 +853,51 @@
                     window.hljs.highlightAll();
                 }
             });
+
+        const PWA_STORAGE_KEY = 'spotPwaDismissedAt';
+        const PWA_INSTALLED_KEY = 'spotPwaInstalled';
+        let deferredInstallPrompt = null;
+        const installBanner = document.getElementById('pwa-install-banner');
+        const installButton = document.getElementById('pwa-install-button');
+        const dismissButton = document.getElementById('pwa-dismiss-button');
+        const shouldShowBanner = () => {
+            if (!installBanner || !installButton || !dismissButton) return false;
+            if (window.matchMedia('(display-mode: standalone)').matches) return false;
+            if (window.navigator.standalone) return false;
+            if (localStorage.getItem(PWA_INSTALLED_KEY) === 'true') return false;
+            const dismissedAt = Number(localStorage.getItem(PWA_STORAGE_KEY) || 0);
+            const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+            return Date.now() - dismissedAt > WEEK_MS;
+        };
+        const showBanner = () => installBanner?.classList.remove('hidden');
+        const hideBanner = () => installBanner?.classList.add('hidden');
+        window.addEventListener('beforeinstallprompt', (event) => {
+            event.preventDefault();
+            deferredInstallPrompt = event;
+            if (shouldShowBanner()) {
+                showBanner();
+            }
+        });
+        installButton?.addEventListener('click', async () => {
+            if (!deferredInstallPrompt) return;
+            deferredInstallPrompt.prompt();
+            const { outcome } = await deferredInstallPrompt.userChoice;
+            deferredInstallPrompt = null;
+            hideBanner();
+            localStorage.setItem(PWA_STORAGE_KEY, String(Date.now()));
+            if (outcome === 'accepted') {
+                localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+            }
+        });
+        dismissButton?.addEventListener('click', () => {
+            hideBanner();
+            localStorage.setItem(PWA_STORAGE_KEY, String(Date.now()));
+        });
+        window.addEventListener('appinstalled', () => {
+            localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+            hideBanner();
+        });
+
         </script>
 
         <script>

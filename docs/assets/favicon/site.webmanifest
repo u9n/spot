@@ -1,7 +1,7 @@
 {
   "name": "Spot",
   "short_name": "Spot",
-  "description": "Utilitarian Spot – free European electricity price data",
+  "description": "Utilitarian Spot \u2013 free European electricity price data",
   "start_url": "/",
   "scope": "/",
   "icons": [
@@ -9,16 +9,29 @@
       "src": "/assets/favicon/web-app-manifest-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any"
     },
     {
       "src": "/assets/favicon/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any"
     }
   ],
   "theme_color": "#0f172a",
   "background_color": "#0f172a",
-  "display": "standalone"
+  "display": "standalone",
+  "screenshots": [
+    {
+      "src": "/assets/images/social-card-index.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/assets/images/social-card-explorer.png",
+      "sizes": "1200x630",
+      "type": "image/png"
+    }
+  ]
 }
