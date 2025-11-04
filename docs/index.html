@@ -578,9 +578,15 @@
                         this.persistTimezone();
                         this.emitTimezone('timezone');
                     });
-                    this.$watch('notificationZone', () => {
+                    this.$watch('notificationZone', (newZone, oldZone) => {
                         if (this.suppressEmit) return;
-                        if (this.notificationZone && !zoneCountryMap.has(this.notificationZone)) {
+                        if (this.notificationsEnabled) {
+                            this.suppressEmit = true;
+                            this.notificationZone = oldZone ?? this.notificationZone;
+                            this.suppressEmit = false;
+                            return;
+                        }
+                        if (newZone && !zoneCountryMap.has(newZone)) {
                             this.notificationZone = null;
                             return;
                         }
@@ -1613,21 +1619,15 @@
                             <label for="spot-notify-zone" class="text-xs uppercase tracking-wide text-slate-400">Bidding
                                 zone</label>
                             <select id="spot-notify-zone" data-alpine-managed="true" x-model="notificationZone"
+                                :disabled="notificationsEnabled"
+                                :class="notificationsEnabled ? 'opacity-60 cursor-not-allowed' : ''"
                                 class="w-full rounded-md border border-white/10 bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-slate-500">
                                 <template x-for="option in zoneOptions" :key="option.code">
                                     <option :value="option.code" x-text="option.label || option.code"></option>
                                 </template>
                             </select>
+                            <p x-show="notificationsEnabled" class="text-xs text-amber-300">Disable notifications to change the bidding zone.</p>
                         </div>
-
-                        <span class="flex mt-4"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                stroke-width="1.5" stroke="currentColor" class="size-6 mr-2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                            </svg>
-                            Allow notifications in your browser to receive pushes for the selected bidding zone.
-                        </span>
-
 
                     </div>
                 </div>

@@ -693,7 +693,15 @@
           state.enabled = false;
           persistEnabled(false);
           setToggleChecked(false);
-          setNote(error.message || 'Failed to enable notifications.');
+          if (error && /denied/i.test(String(error))) {
+            setNote('Notifications are blocked for this browser. Please allow notifications to subscribe.');
+          } else if (error && /granted/i.test(Notification.permission || '')) {
+            setNote(error.message || 'Failed to enable notifications.');
+          } else if (Notification.permission === 'denied') {
+            setNote('Notifications are blocked for this site. Re-enable them in the browser settings to subscribe.');
+          } else {
+            setNote(error.message || 'Failed to enable notifications.');
+          }
         }
       } else {
         setNote('Disabling notifications…');
@@ -773,10 +781,22 @@
 
     const onZoneSelectChange = () => {
       const zone = zoneSelectEl.value || null;
+      if (state.enabled) {
+        setNote('Disable notifications to change the bidding zone.');
+        suppressToggleEvent = true;
+        zoneSelectEl.value = state.zone || '';
+        suppressToggleEvent = false;
+        return;
+      }
       if (zone && zone !== state.zone) {
         state.zone = zone;
         document.dispatchEvent(new CustomEvent('spot:notification-zone-change', {
           detail: { zones: [zone], primary: zone, source: 'notifications', reason: 'dom-change' }
+        }));
+      } else if (!zone && state.zone) {
+        state.zone = null;
+        document.dispatchEvent(new CustomEvent('spot:notification-zone-change', {
+          detail: { zones: [], primary: null, source: 'notifications', reason: 'dom-change' }
         }));
       }
     };
