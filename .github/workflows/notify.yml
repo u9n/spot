@@ -27,9 +27,6 @@ jobs:
         env:
           SPOT_ADMIN_TOKEN: ${{ secrets.SPOT_ADMIN_TOKEN }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
-          SPOT_VAPID_SUBJECT: ${{ secrets.SPOT_VAPID_SUBJECT }}
-          SPOT_SUBSCRIPTION_ENDPOINT: ${{ secrets.SPOT_SUBSCRIPTION_ENDPOINT }}
-          SPOT_DATA_ORIGIN: ${{ secrets.SPOT_DATA_ORIGIN }}
         run: |
           python scripts/notify_on_price_update.py \
             SE1 SE2 SE3 SE4 \
