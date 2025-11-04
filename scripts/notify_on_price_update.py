@@ -264,28 +264,16 @@ def main(zones: Sequence[str], data_origin: str, endpoint: str, ttl: int) -> Non
 
     vapid_subject = os.getenv("SPOT_VAPID_SUBJECT", "mailto:alerts@example.com")
 
-    if zones:
-        requested = [zone.upper() for zone in zones]
-        unknown = sorted(set(requested) - PRICE_AREAS)
-        if unknown:
-            click.echo(f"Invalid zone(s) ignored: {', '.join(unknown)}", err=True)
-        zone_list = [zone for zone in requested if zone in PRICE_AREAS]
-        if not zone_list:
-            click.echo("No valid zones supplied; nothing to do.")
-            return
-    else:
-        zone_list = None
+    
 
     origin = data_origin.rstrip("/")
     endpoint = endpoint.rstrip("/")
 
     errors = 0
 
-    if zone_list is None:
-        return
-
+    
     with httpx.Client() as client:
-        for zone in zone_list:
+        for zone in zones:
             try:
                 process_zone(zone, origin, endpoint, client, admin_token, vapid_key, vapid_subject, ttl)
             except click.ClickException as err:
