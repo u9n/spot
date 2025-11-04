@@ -6,9 +6,15 @@ from datetime import datetime, timedelta, date
 import httpx
 import zoneinfo
 
-from base import (Price, file_converter, from_api_converter,
-                  get_saved_prices_for_day, get_saved_prices_for_month,
-                  get_saved_prices_for_year, BASE_DIRECTORY, )
+from base import (
+    Price,
+    file_converter,
+    from_api_converter,
+    get_saved_prices_for_day,
+    get_saved_prices_for_month,
+    get_saved_prices_for_year,
+    BASE_DIRECTORY,
+)
 
 
 def url_of_price_area(price_area: str, from_date: date, to_date: date) -> str:
@@ -154,7 +160,8 @@ def save_latest_prices(latest_prices: list[Price], price_area: str):
 
 
 if __name__ == "__main__":
-    for area in PRICE_AREAS:
+    swedish_areas = ("SE1", "SE2", "SE3", "SE4")
+    for area in swedish_areas:
         prices = get_latest_price_area_data(area, 4, 1)
         grouped_prices_by_day = group_values_by_day(prices)
         grouped_prices_by_month = group_values_by_month(prices)

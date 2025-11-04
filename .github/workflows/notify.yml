@@ -1,0 +1,41 @@
+name: Notify Subscribers
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -r requirements.txt
+
+      - name: Send notifications for updated prices
+        env:
+          SPOT_ADMIN_TOKEN: ${{ secrets.SPOT_ADMIN_TOKEN }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          SPOT_VAPID_SUBJECT: ${{ secrets.SPOT_VAPID_SUBJECT }}
+          SPOT_SUBSCRIPTION_ENDPOINT: ${{ secrets.SPOT_SUBSCRIPTION_ENDPOINT }}
+          SPOT_DATA_ORIGIN: ${{ secrets.SPOT_DATA_ORIGIN }}
+        run: |
+          python scripts/notify_on_price_update.py \
+            SE1 SE2 SE3 SE4 \
+            DK1 DK2 \
+            NO1 NO2 NO3 NO4 NO5 \
+            FI DE_LU AT FR BE NL PL \
+            EE LT LV \
+            IT-NORTH IT-CENTRE_NORTH IT-CENTRE_SOUTH IT-SOUTH IT-SICILY IT-SARDINIA IT-CALABRIA \
+            CH ES PT SK SI CZ HU HR RO RS BG GR

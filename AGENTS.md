@@ -9,6 +9,7 @@ The static client lives in `docs/`, with `index.html`, `app.js`, and assets unde
 - `python scripts/get_spot_prices.py` — download fresh Nord Pool prices for SE1–SE4 and regenerate the JSON tree in `docs/electricity/`.
 - `python scripts/calculate_stats_per_day.py` — recompute `stats.json` files with daily min/max/average values.
 - `python scripts/serve_docs_with_cors.py --port 8001` — serve the site locally with permissive CORS for tunnelling or service worker testing.
+- `python scripts/notify_on_price_update.py [ZONE …]` — detect fresh prices for one or more bidding zones (or all when omitted), send Web Push alerts, and persist the latest timestamp in the Worker (used by the scheduled GitHub Action).
 
 ## Coding Style & Naming Conventions
 Use 4-space indentation and type hints in Python modules; follow the existing `attrs` patterns and reuse the struct/unstruct helpers in `base.py`. Favor `snake_case` for functions and variables, and keep constants like `PRICE_AREAS` uppercase. JSON outputs should retain ISO8601 timestamps and stringified price values to match the current API contract. In the static client, keep modules lightweight and colocated in `docs/app.js`; asset filenames should stay lowercase with hyphens where applicable.

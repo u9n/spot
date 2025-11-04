@@ -34,3 +34,14 @@ A lightweight notification/badging test panel ships with the production build bu
   - `GET /admin/subs?zone=SE3`
   - `GET|PUT /admin/ts/:zone`
 - `scripts/send_webpush.py` sends manual test notifications. It loads `VAPID_PRIVATE_KEY` (and optional `VAPID_SUBJECT`) from `.env`, prompts for a subscription JSON, and accepts payload overrides via CLI flags. Use `--dry-run` to inspect the request without sending.
+- `scripts/notify_on_price_update.py [ZONE …]` compares the latest published timestamp for the supplied bidding zones (or all zones if none are specified) with Worker KV, pushes notifications when they advance, and updates the stored cursor. Set `SPOT_ADMIN_TOKEN`, `VAPID_PRIVATE_KEY`, and related environment variables (see below) before running.
+
+## Scheduled notifications
+
+A GitHub Actions workflow (`.github/workflows/notify.yml`) polls every 30 minutes:
+
+- Required secrets:
+  - `SPOT_ADMIN_TOKEN` — bearer token for the Worker admin endpoints.
+  - `VAPID_PRIVATE_KEY` — private VAPID key used to sign Web Push messages.
+  - Optional overrides: `SPOT_VAPID_SUBJECT`, `SPOT_SUBSCRIPTION_ENDPOINT`, `SPOT_DATA_ORIGIN`.
+- The workflow runs `python scripts/notify_on_price_update.py` followed by the explicit list of supported zones (e.g. `SE1 SE2 … GR`) to keep the scope predictable while still iterating sequentially, skipping zones without new data, pruning stale subscriptions, and recording the latest timestamp to avoid duplicate notifications.
