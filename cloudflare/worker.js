@@ -24,6 +24,10 @@ export default {
     const url = new URL(req.url);
 
     try {
+      if (req.method === 'GET' && url.pathname === '/admin/health') {
+        return json(200, { status: 'ok', timestamp: Date.now() }, headers);
+      }
+
       if (req.method === 'POST' && url.pathname === '/subscribe') {
         const body = await safeJson(req);
         const sub = body?.subscription;
@@ -164,12 +168,14 @@ async function safeJson(req) {
   }
 }
 
+
 function isAdmin(req, env) {
-  const expected = env.ADMIN_TOKEN;
-  if (!expected) {
+  const provided = req.headers.get('Authorization') || '';
+  const token = env.ADMIN_SECRET;
+  if (!token) {
     return false;
   }
-  return (req.headers.get('Authorization') || '') === `Bearer ${expected}`;
+  return provided === `Bearer ${token}`;
 }
 
 function validSub(sub) {
@@ -183,7 +189,7 @@ function validSub(sub) {
 function normalizeZone(zone) {
   if (!zone || typeof zone !== 'string') return null;
   const upper = zone.toUpperCase();
-  return /^[A-Z0-9_-]{2,12}$/.test(upper) ? upper : null;
+  return /^[A-Z0-9_-]{2,32}$/.test(upper) ? upper : null;
 }
 
 async function sha256(input) {

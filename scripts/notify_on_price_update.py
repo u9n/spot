@@ -25,6 +25,7 @@ from pywebpush import WebPushException, webpush
 
 
 
+
 load_dotenv()
 
 
@@ -155,6 +156,11 @@ def process_zone(
 
     try:
         stored_ts = fetch_worker_timestamp(endpoint, zone, admin_token, client)
+    except httpx.HTTPStatusError as err:
+        if err.response.status_code == 401:
+            click.echo("  ! Unauthorized when reading worker timestamp; skipping zone.")
+            return
+        raise click.ClickException(f"Failed to read worker timestamp for {zone}: {err}") from err
     except httpx.HTTPError as err:
         raise click.ClickException(f"Failed to read worker timestamp for {zone}: {err}") from err
 
@@ -162,6 +168,11 @@ def process_zone(
         click.echo("  · No previous timestamp stored; writing current value and exiting.")
         try:
             update_worker_timestamp(endpoint, zone, admin_token, latest_ts, client)
+        except httpx.HTTPStatusError as err:
+            if err.response.status_code == 401:
+                click.echo("  ! Unauthorized when updating timestamp; skipping zone.")
+                return
+            raise click.ClickException(f"Failed to update timestamp for {zone}: {err}") from err
         except httpx.HTTPError as err:
             raise click.ClickException(f"Failed to update timestamp for {zone}: {err}") from err
         return
@@ -175,6 +186,11 @@ def process_zone(
 
     try:
         subscriptions = fetch_subscriptions(endpoint, zone, admin_token, client)
+    except httpx.HTTPStatusError as err:
+        if err.response.status_code == 401:
+            click.echo("  ! Unauthorized when fetching subscriptions; skipping zone.")
+            return
+        raise click.ClickException(f"Failed to fetch subscriptions for {zone}: {err}") from err
     except httpx.HTTPError as err:
         raise click.ClickException(f"Failed to fetch subscriptions for {zone}: {err}") from err
 
@@ -182,6 +198,11 @@ def process_zone(
         click.echo("  · No subscribers for this zone; updating cursor.")
         try:
             update_worker_timestamp(endpoint, zone, admin_token, latest_ts, client)
+        except httpx.HTTPStatusError as err:
+            if err.response.status_code == 401:
+                click.echo("  ! Unauthorized when updating timestamp; skipping zone.")
+                return
+            raise click.ClickException(f"Failed to update timestamp for {zone}: {err}") from err
         except httpx.HTTPError as err:
             raise click.ClickException(f"Failed to update timestamp for {zone}: {err}") from err
         return
@@ -204,6 +225,11 @@ def process_zone(
 
     try:
         update_worker_timestamp(endpoint, zone, admin_token, latest_ts, client)
+    except httpx.HTTPStatusError as err:
+        if err.response.status_code == 401:
+            click.echo("  ! Unauthorized when persisting timestamp; skipping zone.")
+            return
+        raise click.ClickException(f"Failed to persist timestamp for {zone}: {err}") from err
     except httpx.HTTPError as err:
         raise click.ClickException(f"Failed to persist timestamp for {zone}: {err}") from err
 
@@ -240,14 +266,23 @@ def main(zones: Sequence[str], data_origin: str, endpoint: str, ttl: int) -> Non
 
     if zones:
         requested = [zone.upper() for zone in zones]
-        zone_list = requested
+        unknown = sorted(set(requested) - PRICE_AREAS)
+        if unknown:
+            click.echo(f"Invalid zone(s) ignored: {', '.join(unknown)}", err=True)
+        zone_list = [zone for zone in requested if zone in PRICE_AREAS]
+        if not zone_list:
+            click.echo("No valid zones supplied; nothing to do.")
+            return
     else:
-        zone_list = [] 
+        zone_list = None
 
     origin = data_origin.rstrip("/")
     endpoint = endpoint.rstrip("/")
 
     errors = 0
+
+    if zone_list is None:
+        return
 
     with httpx.Client() as client:
         for zone in zone_list:
@@ -261,7 +296,7 @@ def main(zones: Sequence[str], data_origin: str, endpoint: str, ttl: int) -> Non
                 click.echo(f"  ! Unexpected error for zone {zone}: {err}", err=True)
 
     if errors:
-        raise SystemExit(1)
+        click.echo(f"Completed with {errors} zone error(s).", err=True)
 
 
 if __name__ == "__main__":

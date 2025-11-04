@@ -23,3 +23,10 @@ mode = "smart"
 
 # Compatibility flags if you want the latest APIs (optional)
 # compatibility_flags = ["nodejs_compat"]
+
+[observability]
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+persist = true
