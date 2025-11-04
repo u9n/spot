@@ -5,4 +5,5 @@ click==8.1.7
 python-dateutil==2.8.2
 structlog==23.2.0
 xmltodict==0.13.0
-
+pywebpush
+python-dotenv==1.0.1

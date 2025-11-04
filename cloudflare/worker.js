@@ -104,22 +104,48 @@ export default {
 };
 
 function buildCors(req, env) {
-  const configured = env.ALLOWED_ORIGIN || '*';
   const origin = req.headers.get('Origin');
+  const configured =
+    env.ALLOWED_ORIGINS ||
+    env.ALLOWED_ORIGIN ||
+    '*';
 
-  if (configured !== '*' && origin && origin !== configured) {
+  const allowed = configured
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean);
+
+  const allowAny = allowed.length === 0 || allowed.includes('*');
+
+  if (!origin) {
+    // Requests from service workers / curl (no Origin header) are allowed.
+    return {
+      blocked: false,
+      headers: corsHeaders(allowAny ? '*' : allowed[0] || '*', allowAny)
+    };
+  }
+
+  if (!allowAny && !allowed.includes(origin)) {
     return { blocked: true };
   }
 
-  const allowOrigin = configured === '*' ? (origin || '*') : configured;
+  return {
+    blocked: false,
+    headers: corsHeaders(allowAny ? origin : origin, allowAny)
+  };
+}
+
+function corsHeaders(allowOrigin, allowAny) {
   const headers = {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Max-Age': '86400',
-    Vary: 'Origin'
+    'Access-Control-Max-Age': '86400'
   };
-  return { blocked: false, headers };
+  if (allowAny) {
+    headers.Vary = 'Origin';
+  }
+  return headers;
 }
 
 function json(status, data, headers = {}) {

@@ -47,6 +47,7 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js-de.sentry-cdn.com/bc2edb991dc958c5a7c259257da7e6a9.min.js" crossorigin="anonymous"></script>
 
     <!-- uPlot -->
     <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css"
@@ -66,7 +67,6 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css">
     </noscript>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
-    <script defer src="/assets/spot-notify.js"></script>
 
     <!--
     TODO:s
@@ -98,6 +98,23 @@
   },
   "keywords": ["electricity", "day-ahead", "ENTSO-E", "energy prices", "Europe"]
 }
+    </script>
+    <script>
+        Sentry.onLoad(function () {
+            Sentry.init({
+                // You can add any additional configuration here
+                spotlight: true, // Enable Spotlight
+                sampleRate: 1.0, // Capture all errors in dev
+                tracesSampleRate: 1.0, // Capture all traces in dev
+                enableLogs: true,
+                integrations: [
+                    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+                    // For frontend apps, add:
+                    Sentry.spotlightBrowserIntegration(),
+                    Sentry.browserTracingIntegration(),
+                ],
+            });
+        });
     </script>
     <script>
         window.SPOT_COUNTRIES = window.SPOT_COUNTRIES || [
@@ -251,7 +268,8 @@
                 country: 'spot.settings.country',
                 zone: 'spot.settings.zone',
                 timezone: 'spot.settings.timezone',
-                notificationZone: 'spot.notifications.zone'
+                notificationZone: 'spot.notifications.zone',
+                notificationEnabled: 'spot.notifications.enabled'
             };
 
             const LEGACY_KEYS = {
@@ -264,11 +282,13 @@
             const storedZone = readStoredValue(STORAGE_KEYS.zone, [LEGACY_KEYS.zone]);
             const storedTimezone = readStoredValue(STORAGE_KEYS.timezone, [LEGACY_KEYS.timezone]);
             const storedNotificationZone = readStoredValue(STORAGE_KEYS.notificationZone, []);
+            const storedNotificationEnabled = readStoredValue(STORAGE_KEYS.notificationEnabled, []);
 
             let initialCountry = (typeof storedCountry === 'string' && storedCountry) ? storedCountry : defaultCountry;
             const initialTimezone = (typeof storedTimezone === 'string' && storedTimezone) ? storedTimezone : defaultTimezone;
             let initialZone = (typeof storedZone === 'string' && storedZone) ? storedZone : null;
             let initialNotificationZone = (typeof storedNotificationZone === 'string' && storedNotificationZone) ? storedNotificationZone : null;
+            let initialNotificationEnabled = (typeof storedNotificationEnabled === 'boolean') ? storedNotificationEnabled : false;
             const countryExists = code => countryMap.has(code);
             if (!countryExists(initialCountry)) {
                 initialCountry = defaultCountry;
@@ -290,7 +310,8 @@
                 LEGACY_KEYS,
                 zoneOwners: Object.fromEntries(zoneCountryMap),
                 zoneOptions: zoneOptions.map(opt => ({ ...opt })),
-                notificationZone: initialNotificationZone
+                notificationZone: initialNotificationZone,
+                notificationEnabled: initialNotificationEnabled
             };
 
             Alpine.data('spotSettingsFlyout', () => ({
@@ -303,6 +324,7 @@
                 selectedZone: initialZone,
                 selectedTimezone: initialTimezone,
                 notificationZone: initialNotificationZone,
+                notificationsEnabled: !!initialNotificationEnabled,
                 get currentCountry() {
                     return findCountryByCode(this.selectedCountry);
                 },
@@ -353,6 +375,9 @@
                         writeStoredValue(STORAGE_KEYS.notificationZone, null, []);
                     }
                 },
+                persistNotificationEnabled() {
+                    writeStoredValue(STORAGE_KEYS.notificationEnabled, !!this.notificationsEnabled, []);
+                },
                 emitSelection(reason) {
                     if (this.suppressEmit) return;
                     document.dispatchEvent(new CustomEvent('spot:selection-change', {
@@ -382,6 +407,16 @@
                         detail: {
                             zones,
                             primary: this.notificationZone || null,
+                            reason,
+                            source: 'alpine'
+                        }
+                    }));
+                },
+                emitNotificationToggle(reason) {
+                    if (this.suppressEmit) return;
+                    document.dispatchEvent(new CustomEvent('spot:notification-toggle', {
+                        detail: {
+                            enabled: !!this.notificationsEnabled,
                             reason,
                             source: 'alpine'
                         }
@@ -447,6 +482,9 @@
                     if (!this.notificationZone && this.zoneOptions.length) {
                         this.notificationZone = this.zoneOptions[0].code;
                     }
+                    if (typeof this.notificationsEnabled !== 'boolean') {
+                        this.notificationsEnabled = false;
+                    }
                 },
                 init() {
                     this.suppressEmit = true;
@@ -454,6 +492,7 @@
                     this.persistSelection();
                     this.persistTimezone();
                     this.persistNotification();
+                    this.persistNotificationEnabled();
                     this.suppressEmit = false;
 
                     window.spotSettingsPanel = {
@@ -477,6 +516,17 @@
                             this.suppressEmit = true;
                             this.selectedTimezone = detail.timezone;
                             this.persistTimezone();
+                            this.suppressEmit = false;
+                        }
+                    });
+
+                    document.addEventListener('spot:notification-toggle-state', event => {
+                        const detail = event.detail || {};
+                        if (detail.source === 'alpine') return;
+                        if (typeof detail.enabled === 'boolean') {
+                            this.suppressEmit = true;
+                            this.notificationsEnabled = detail.enabled;
+                            this.persistNotificationEnabled();
                             this.suppressEmit = false;
                         }
                     });
@@ -537,10 +587,16 @@
                         this.persistNotification();
                         this.emitNotification('notify-zone');
                     });
+                    this.$watch('notificationsEnabled', () => {
+                        if (this.suppressEmit) return;
+                        this.persistNotificationEnabled();
+                        this.emitNotificationToggle('toggle');
+                    });
 
                     this.emitSelection('init');
                     this.emitTimezone('init');
                     this.emitNotification('init');
+                    this.emitNotificationToggle('init');
                 }
             }));
         });
@@ -1546,7 +1602,7 @@
                     </div>
                 </section>
                 <div class="flex items-start gap-3 rounded-lg border border-white/10 bg-slate-800 px-4 py-3">
-                    <input id="spot-notify-toggle" type="checkbox"
+                    <input id="spot-notify-toggle" type="checkbox" x-model="notificationsEnabled"
                         class="mt-1 h-4 w-4 rounded border-slate-400 bg-slate-900 text-emerald-500 focus:ring-emerald-400" />
                     <div>
                         <label for="spot-notify-toggle" class="text-sm font-medium text-slate-100">Enable price update
@@ -1569,7 +1625,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                             </svg>
-                            We are currently developing this feature. Stay tuned! </span>
+                            Allow notifications in your browser to receive pushes for the selected bidding zone.
+                        </span>
 
 
                     </div>
