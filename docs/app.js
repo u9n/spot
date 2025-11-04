@@ -807,15 +807,22 @@
         return;
       }
 
-      if (!window.isSecureContext && location.protocol !== 'https:') {
-        disableToggle('Notifications require HTTPS or localhost.');
-        return;
-      }
+    if (!window.isSecureContext && location.protocol !== 'https:') {
+      disableToggle('Notifications require HTTPS or localhost.');
+      return;
+    }
 
-      if (!('PushManager' in window)) {
-        disableToggle('Push notifications are not supported in this browser.');
-        return;
-      }
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+    const isStandalone = window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (isIOS && !isStandalone) {
+      disableToggle('Add Spot to your Home Screen to enable notifications on iOS (Share → Add to Home Screen, then reopen).');
+      return;
+    }
+
+    if (!('PushManager' in window)) {
+      disableToggle('Push notifications are not supported in this browser.');
+      return;
+    }
 
       toggleEl.removeAttribute('disabled');
       state.enabled = readStoredEnabled();
