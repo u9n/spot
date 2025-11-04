@@ -23,7 +23,6 @@ import httpx
 from dotenv import load_dotenv
 from pywebpush import WebPushException, webpush
 
-from scripts.base import PRICE_AREAS
 
 
 load_dotenv()
@@ -241,14 +240,9 @@ def main(zones: Sequence[str], data_origin: str, endpoint: str, ttl: int) -> Non
 
     if zones:
         requested = [zone.upper() for zone in zones]
-        unknown = sorted(set(requested) - PRICE_AREAS)
-        if unknown:
-            raise click.ClickException(
-                f"Unsupported zone(s): {', '.join(unknown)}. Available zones: {', '.join(sorted(PRICE_AREAS))}"
-            )
         zone_list = requested
     else:
-        zone_list = sorted(PRICE_AREAS)
+        zone_list = [] 
 
     origin = data_origin.rstrip("/")
     endpoint = endpoint.rstrip("/")
